@@ -43,21 +43,21 @@ class ReflectionVariableAccessorGenerator {
             throw new IllegalArgumentException("unsupported variable class: " + variableType);
         }
 
-        Class javaType = (Class) variableType;
+        Class<?> javaType = (Class) variableType;
 
         SimpleNativeContext context = new SimpleNativeContext(runtime, annotations);
         SignatureType signatureType = DefaultSignatureType.create(javaType, (FromNativeContext) context);
         jnr.ffi.mapper.FromNativeType mappedFromNativeType = typeMapper.getFromNativeType(signatureType, context);
-        FromNativeConverter fromNativeConverter = mappedFromNativeType != null ? mappedFromNativeType.getFromNativeConverter() : null;
+        FromNativeConverter<?, ?> fromNativeConverter = mappedFromNativeType != null ? mappedFromNativeType.getFromNativeConverter() : null;
         jnr.ffi.mapper.ToNativeType mappedToNativeType = typeMapper.getToNativeType(signatureType, context);
-        ToNativeConverter toNativeConverter = mappedToNativeType != null ? mappedToNativeType.getToNativeConverter() : null;
+        ToNativeConverter<?, ?> toNativeConverter = mappedToNativeType != null ? mappedToNativeType.getToNativeConverter() : null;
 
 
-        Class boxedType = toNativeConverter != null ? toNativeConverter.nativeType() : javaType;
+        Class<?> boxedType = toNativeConverter != null ? toNativeConverter.nativeType() : javaType;
         NativeType nativeType = Types.getType(runtime, boxedType, annotations).getNativeType();
         jnr.ffi.provider.ToNativeType toNativeType = new jnr.ffi.provider.ToNativeType(javaType, nativeType, annotations, toNativeConverter, null);
         jnr.ffi.provider.FromNativeType fromNativeType = new jnr.ffi.provider.FromNativeType(javaType, nativeType, annotations, fromNativeConverter, null);
-        Variable variable;
+        Variable<?> variable;
         Pointer memory = MemoryUtil.newPointer(runtime, symbolAddress);
         variable = getNativeVariableAccessor(memory, toNativeType, fromNativeType);
         return toNativeType.getToNativeConverter() != null
@@ -65,14 +65,14 @@ class ReflectionVariableAccessorGenerator {
                 : variable;
     }
 
-    static Variable getConvertingVariable(Variable nativeVariable, ToNativeConverter toNativeConverter, FromNativeConverter fromNativeConverter) {
+    static Variable<?> getConvertingVariable(Variable<?> nativeVariable, ToNativeConverter<?, ?> toNativeConverter, FromNativeConverter<?, ?> fromNativeConverter) {
         if ((toNativeConverter != null && fromNativeConverter == null) || toNativeConverter == null && fromNativeConverter != null) {
             throw new UnsupportedOperationException("convertible types must have both a ToNativeConverter and a FromNativeConverter");
         }
         return new ConvertingVariable(nativeVariable, toNativeConverter, fromNativeConverter);
     }
 
-    static Variable getNativeVariableAccessor(Pointer memory, jnr.ffi.provider.ToNativeType toNativeType, jnr.ffi.provider.FromNativeType fromNativeType) {
+    static Variable<?> getNativeVariableAccessor(Pointer memory, jnr.ffi.provider.ToNativeType toNativeType, jnr.ffi.provider.FromNativeType fromNativeType) {
         if (Pointer.class == toNativeType.effectiveJavaType()) {
             return new PointerVariable(memory);
 
@@ -126,24 +126,24 @@ class ReflectionVariableAccessorGenerator {
         }
     }
 
-    private static final class ConvertingVariable implements Variable {
-        private final Variable variable;
-        private final ToNativeConverter toNativeConverter;
-        private final FromNativeConverter fromNativeConverter;
+    private static final class ConvertingVariable<J, N> implements Variable<J> {
+        private final Variable<N> variable;
+        private final ToNativeConverter<J, N> toNativeConverter;
+        private final FromNativeConverter<J, N> fromNativeConverter;
 
-        private ConvertingVariable(Variable variable, ToNativeConverter toNativeConverter, FromNativeConverter fromNativeConverter) {
+        private ConvertingVariable(Variable<N> variable, ToNativeConverter<J, N> toNativeConverter, FromNativeConverter<J, N> fromNativeConverter) {
             this.variable = variable;
             this.toNativeConverter = toNativeConverter;
             this.fromNativeConverter = fromNativeConverter;
         }
 
         @Override
-        public Object get() {
+        public J get() {
             return fromNativeConverter.fromNative(variable.get(), null);
         }
 
         @Override
-        public void set(Object value) {
+        public void set(J value) {
             variable.set(toNativeConverter.toNative(value, null));
         }
     }

@@ -59,7 +59,7 @@ public class AnnotationTypeMapper extends AbstractSignatureTypeMapper implements
     }
     
     private static Method findMethodWithAnnotation(SignatureType type, Class<? extends Annotation> annotationClass) {
-        for (Class klass = type.getDeclaredType(); klass != null && klass != Object.class; klass = klass.getSuperclass()) {
+        for (Class<?> klass = type.getDeclaredType(); klass != null && klass != Object.class; klass = klass.getSuperclass()) {
             for (Method m : klass.getDeclaredMethods()) {
                 if (m.isAnnotationPresent(annotationClass)) {
                     return m;
@@ -75,7 +75,7 @@ public class AnnotationTypeMapper extends AbstractSignatureTypeMapper implements
         protected final Method method;
         protected final Class nativeType;
 
-        public AbstractReflectionConverter(Method method, Class nativeType) {
+        public AbstractReflectionConverter(Method method, Class<?> nativeType) {
             this.method = method;
             this.nativeType = nativeType;
         }
@@ -98,7 +98,7 @@ public class AnnotationTypeMapper extends AbstractSignatureTypeMapper implements
 
     @FromNativeConverter.Cacheable
     public final class ReflectionFromNativeConverter extends AbstractReflectionConverter implements FromNativeConverter<Object, Object> {
-        public ReflectionFromNativeConverter(Method method, Class nativeType) {
+        public ReflectionFromNativeConverter(Method method, Class<?> nativeType) {
             super(method, nativeType);
         }
 
@@ -110,7 +110,7 @@ public class AnnotationTypeMapper extends AbstractSignatureTypeMapper implements
 
     @ToNativeConverter.Cacheable
     public final class ReflectionToNativeConverter extends AbstractReflectionConverter implements ToNativeConverter<Object, Object> {
-        public ReflectionToNativeConverter(Method method, Class nativeType) {
+        public ReflectionToNativeConverter(Method method, Class<?> nativeType) {
             super(method, nativeType);
         }
 

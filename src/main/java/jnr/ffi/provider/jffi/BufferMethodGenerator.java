@@ -45,22 +45,22 @@ import static jnr.ffi.provider.jffi.NumberUtil.sizeof;
 final class BufferMethodGenerator extends BaseMethodGenerator {
     private static abstract class Operation {
         final String methodName;
-        final Class primitiveClass;
+        final Class<?> primitiveClass;
 
-        private Operation(String methodName, Class primitiveClass) {
+        private Operation(String methodName, Class<?> primitiveClass) {
             this.methodName = methodName;
             this.primitiveClass = primitiveClass;
         }
     }
 
     private static final class MarshalOp extends Operation {
-        private MarshalOp(String methodName, Class primitiveClass) {
+        private MarshalOp(String methodName, Class<?> primitiveClass) {
             super("put" + methodName, primitiveClass);
         }
     }
 
     private static final class InvokeOp extends Operation {
-        private InvokeOp(String methodName, Class primitiveClass) {
+        private InvokeOp(String methodName, Class<?> primitiveClass) {
             super("invoke" + methodName, primitiveClass);
         }
     }
@@ -117,6 +117,7 @@ final class BufferMethodGenerator extends BaseMethodGenerator {
         generateBufferInvocation(builder, mv, localVariableAllocator, callContext, resultType, parameterTypes);
     }
 
+    @Override
     public boolean isSupported(ResultType resultType, ParameterType[] parameterTypes, CallingConvention callingConvention) {
         // Buffer invocation supports everything
         return true;
@@ -177,7 +178,7 @@ final class BufferMethodGenerator extends BaseMethodGenerator {
             }
             converted[i] = loadAndConvertParameter(builder, mv, localVariableAllocator, parameters[i], parameterTypes[i]);
 
-            final Class javaParameterType = parameterTypes[i].effectiveJavaType();
+            final Class<?> javaParameterType = parameterTypes[i].effectiveJavaType();
             ToNativeOp op = ToNativeOp.get(parameterTypes[i]);
             if (op != null && op.isPrimitive()) {
                 emitPrimitiveOp(mv, parameterTypes[i], op);
@@ -206,6 +207,7 @@ final class BufferMethodGenerator extends BaseMethodGenerator {
         // box and/or narrow/widen the return value if needed
         convertPrimitive(mv, iop.primitiveClass, unboxedReturnType(resultType.effectiveJavaType()), resultType.getNativeType());
         emitEpilogue(builder, mv, resultType, parameterTypes, parameters, converted, sessionRequired ? new Runnable() {
+            @Override
             public void run() {
                 mv.aload(session);
                 mv.invokevirtual(p(InvocationSession.class), "finish", "()V");

@@ -24,7 +24,7 @@ import com.kenai.jffi.ObjectParameterType;
 /**
  *
  */
-abstract public class ParameterStrategy extends ObjectParameterStrategy {
+abstract public class ParameterStrategy<T> extends ObjectParameterStrategy<T> {
     /* objectCount is accessed directly from asm code - do not change */
     public final int objectCount;
 

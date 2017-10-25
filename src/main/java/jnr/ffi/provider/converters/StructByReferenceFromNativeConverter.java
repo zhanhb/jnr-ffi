@@ -33,9 +33,9 @@ import java.lang.reflect.InvocationTargetException;
 public class StructByReferenceFromNativeConverter implements FromNativeConverter<Struct, Pointer> {
     private final Constructor<? extends Struct> constructor;
 
-    public static FromNativeConverter<Struct, Pointer> getInstance(Class structClass, FromNativeContext toNativeContext) {
+    public static FromNativeConverter<Struct, Pointer> getInstance(Class<?> structClass, FromNativeContext toNativeContext) {
         try {
-            return new StructByReferenceFromNativeConverter(structClass.getConstructor(jnr.ffi.Runtime.class));
+            return new StructByReferenceFromNativeConverter(structClass.asSubclass(Struct.class).getConstructor(jnr.ffi.Runtime.class));
 
         } catch (NoSuchMethodException nsme) {
             throw new RuntimeException(structClass.getName() + " has no constructor that accepts jnr.ffi.Runtime");

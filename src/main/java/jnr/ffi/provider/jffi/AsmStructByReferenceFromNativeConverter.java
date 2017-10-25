@@ -163,7 +163,7 @@ abstract public class AsmStructByReferenceFromNativeConverter implements FromNat
                 new ClassReader(bytes).accept(trace, 0);
             }
 
-            return classLoader.defineClass(className.replace("/", "."), bytes);
+            return classLoader.defineClass(className.replace("/", "."), bytes).asSubclass(AsmStructByReferenceFromNativeConverter.class);
         } catch (Throwable ex) {
             throw new RuntimeException(ex);
         }

@@ -21,7 +21,6 @@ package jnr.ffi.provider.converters;
 import jnr.ffi.mapper.*;
 import jnr.ffi.util.EnumMapper;
 
-import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.EnumSet;
@@ -29,27 +28,27 @@ import java.util.Set;
 
 @FromNativeConverter.Cacheable
 @ToNativeConverter.Cacheable
-public final class EnumSetConverter implements DataConverter<Set<? extends Enum>, Integer> {
-    private final Class<? extends Enum> enumClass;
-    private final EnumMapper enumMapper;
-    private final EnumSet<? extends Enum> allValues;
+public final class EnumSetConverter<E extends Enum<E>> implements DataConverter<Set<E>, Integer> {
+    private final Class<E> enumClass;
+    private final EnumMapper<E> enumMapper;
+    private final EnumSet<E> allValues;
 
-    private EnumSetConverter(Class<? extends Enum> enumClass) {
+    private EnumSetConverter(Class<E> enumClass) {
         this.enumClass = enumClass;
         this.enumMapper = EnumMapper.getInstance(enumClass);
         this.allValues = EnumSet.allOf(enumClass);
     }
 
-    public static ToNativeConverter<Set<? extends Enum>, Integer> getToNativeConverter(SignatureType type, ToNativeContext toNativeContext) {
+    public static <E extends Enum<E>> ToNativeConverter<Set<E>, Integer> getToNativeConverter(SignatureType type, ToNativeContext toNativeContext) {
         return getInstance(type.getGenericType());
     }
 
-    public static FromNativeConverter<Set<? extends Enum>, Integer> getFromNativeConverter(SignatureType type, FromNativeContext fromNativeContext) {
+    public static <E extends Enum<E>> FromNativeConverter<Set<E>, Integer> getFromNativeConverter(SignatureType type, FromNativeContext fromNativeContext) {
         return getInstance(type.getGenericType());
     }
 
     @SuppressWarnings("unchecked")
-    private static EnumSetConverter getInstance(Type parameterizedType) {
+    private static <E extends Enum<E>> EnumSetConverter<E> getInstance(Type parameterizedType) {
         if (!(parameterizedType instanceof ParameterizedType)) {
             return null;
         }
@@ -63,14 +62,14 @@ public final class EnumSetConverter implements DataConverter<Set<? extends Enum>
             return null;
         }
 
-        return new EnumSetConverter(((Class) enumType).asSubclass(Enum.class));
+        return new EnumSetConverter<E>(((Class) enumType).asSubclass(Enum.class));
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public Set fromNative(Integer nativeValue, FromNativeContext context) {
-        EnumSet enums = EnumSet.noneOf(enumClass);
-        for (Enum e : allValues) {
+    public Set<E> fromNative(Integer nativeValue, FromNativeContext context) {
+        EnumSet<E> enums = EnumSet.noneOf(enumClass);
+        for (E e : allValues) {
             int enumValue = enumMapper.intValue(e);
             if ((nativeValue & enumValue) == enumValue) {
                 enums.add(e);
@@ -81,10 +80,9 @@ public final class EnumSetConverter implements DataConverter<Set<? extends Enum>
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    public Integer toNative(Set<? extends Enum> value, ToNativeContext context) {
+    public Integer toNative(Set<E> value, ToNativeContext context) {
         int intValue = 0;
-        for (Enum e : value) {
+        for (E e : value) {
             intValue |= enumMapper.intValue(e);
         }
 

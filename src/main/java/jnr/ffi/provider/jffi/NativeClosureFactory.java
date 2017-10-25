@@ -59,7 +59,7 @@ public final class NativeClosureFactory<T> {
         this.callContext = callContext;
     }
 
-    static <T> NativeClosureFactory newClosureFactory(jnr.ffi.Runtime runtime, Class<T> closureClass,
+    static <T> NativeClosureFactory<T> newClosureFactory(jnr.ffi.Runtime runtime, Class<T> closureClass,
                                                       SignatureTypeMapper typeMapper, AsmClassLoader classLoader) {
 
         Method callMethod = null;
@@ -74,14 +74,14 @@ public final class NativeClosureFactory<T> {
             throw new NoSuchMethodError("no public non-static delegate method defined in " + closureClass.getName());
         }
 
-        Class[] parameterTypes = callMethod.getParameterTypes();
+        Class<?>[] parameterTypes = callMethod.getParameterTypes();
         FromNativeType[] parameterSigTypes = new FromNativeType[parameterTypes.length];
         for (int i = 0; i < parameterTypes.length; ++i) {
             parameterSigTypes[i] = getParameterType(runtime, callMethod, i, typeMapper);
         }
         ToNativeType resultType = getResultType(runtime, callMethod, typeMapper);
 
-        return new NativeClosureFactory(runtime, getCallContext(resultType, parameterSigTypes, getNativeCallingConvention(callMethod), false),
+        return new NativeClosureFactory<T>(runtime, getCallContext(resultType, parameterSigTypes, getNativeCallingConvention(callMethod), false),
                 NativeClosureProxy.newProxyFactory(runtime, callMethod, resultType, parameterSigTypes, classLoader));
     }
 

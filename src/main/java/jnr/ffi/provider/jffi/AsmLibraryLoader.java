@@ -232,8 +232,8 @@ public class AsmLibraryLoader extends LibraryLoader {
                 new ClassReader(bytes).accept(trace, 0);
             }
 
-            Class<T> implClass = classLoader.defineClass(builder.getClassNamePath().replace("/", "."), bytes);
-            Constructor<T> cons = implClass.getDeclaredConstructor(jnr.ffi.Runtime.class, NativeLibrary.class, Object[].class);
+            Class<? extends T> implClass = classLoader.defineClass(builder.getClassNamePath().replace("/", "."), bytes).asSubclass(interfaceClass);
+            Constructor<? extends T> cons = implClass.getDeclaredConstructor(jnr.ffi.Runtime.class, NativeLibrary.class, Object[].class);
             T result = cons.newInstance(runtime, library, builder.getObjectFieldValues());
 
             // Attach any native method stubs - we have to delay this until the
@@ -249,7 +249,7 @@ public class AsmLibraryLoader extends LibraryLoader {
     }
 
     private void generateFunctionNotFound(ClassVisitor cv, String className, String errorFieldName, String functionName,
-                                                Class returnType, Class[] parameterTypes) {
+                                                Class<?> returnType, Class<?>[] parameterTypes) {
         SkinnyMethodAdapter mv = new SkinnyMethodAdapter(cv, ACC_PUBLIC | ACC_FINAL, functionName,
                 sig(returnType, parameterTypes), null, null);
         mv.start();
@@ -261,7 +261,7 @@ public class AsmLibraryLoader extends LibraryLoader {
     }
 
     private void generateVarargsInvocation(AsmBuilder builder, Method m, ObjectField field) {
-        Class[] parameterTypes = m.getParameterTypes();
+        Class<?>[] parameterTypes = m.getParameterTypes();
         SkinnyMethodAdapter mv = new SkinnyMethodAdapter(builder.getClassVisitor(), ACC_PUBLIC | ACC_FINAL,
                 m.getName(),
                 sig(m.getReturnType(), parameterTypes), null, null);

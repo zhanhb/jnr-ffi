@@ -95,14 +95,15 @@ public final class NativeRuntime extends AbstractRuntime {
         String os = platform.getOS().toString();
         EnumSet<TypeAlias> typeAliases = EnumSet.allOf(TypeAlias.class);
         NativeType[] aliases = {};
-        Class cls;
+        Class<?> cls;
         try {
             cls = Class.forName(pkg.getName() + ".platform." + cpu + "." + os + ".TypeAliases");
             Field aliasesField = cls.getField("ALIASES");
-            Map aliasMap = Map.class.cast(aliasesField.get(cls));
+            @SuppressWarnings("unchecked")
+            Map<TypeAlias, NativeType> aliasMap = Map.class.cast(aliasesField.get(cls));
             aliases = new NativeType[typeAliases.size()];
             for (TypeAlias t : typeAliases) {
-                aliases[t.ordinal()] = (NativeType) aliasMap.get(t);
+                aliases[t.ordinal()] = aliasMap.get(t);
                 if (aliases[t.ordinal()] == null) {
                     aliases[t.ordinal()] = NativeType.VOID;
                 }
@@ -123,16 +124,18 @@ public final class NativeRuntime extends AbstractRuntime {
         return aliases[type.ordinal()];
     }
 
+    @Override
     public final NativeMemoryManager getMemoryManager() {
         return mm;
     }
 
+    @Override
     public NativeClosureManager getClosureManager() {
         return closureManager;
     }
 
     @Override
-    public ObjectReferenceManager newObjectReferenceManager() {
+    public <T> ObjectReferenceManager<T> newObjectReferenceManager() {
         return new DefaultObjectReferenceManager(this);
     }
 
@@ -179,18 +182,22 @@ public final class NativeRuntime extends AbstractRuntime {
             this.nativeType = nativeType;
         }
 
+        @Override
         public int alignment() {
             return type.alignment();
         }
 
+        @Override
         public int size() {
             return type.size();
         }
 
+        @Override
         public NativeType getNativeType() {
             return nativeType;
         }
 
+        @Override
         public String toString() {
             return type.toString();
         }

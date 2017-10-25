@@ -26,31 +26,30 @@ import java.util.EnumSet;
 /**
  *
  */
-final class HeapBufferParameterStrategy extends ParameterStrategy {
+final class HeapBufferParameterStrategy extends ParameterStrategy<Buffer> {
 
     public HeapBufferParameterStrategy(ObjectParameterType.ComponentType componentType) {
         super(HEAP, ObjectParameterType.create(ObjectParameterType.ARRAY, componentType));
     }
 
     @Override
-    public long address(Object o) {
+    public long address(Buffer o) {
         return 0;
     }
 
     @Override
-    public Object object(Object o) {
-        return ((Buffer) o).array();
+    public Object object(Buffer buffer) {
+        return buffer.array();
     }
 
     @Override
-    public int offset(Object o) {
-        Buffer buffer = (Buffer) o;
+    public int offset(Buffer buffer) {
         return buffer.arrayOffset() + buffer.position();
     }
 
     @Override
-    public int length(Object o) {
-        return ((Buffer) o).remaining();
+    public int length(Buffer o) {
+        return o.remaining();
     }
 
 

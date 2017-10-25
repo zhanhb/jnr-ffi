@@ -339,8 +339,9 @@ public abstract class LibraryLoader<T> {
     
     private T createErrorProxy(final Throwable ex) {
         return interfaceClass.cast(Proxy.newProxyInstance(interfaceClass.getClassLoader(),
-            new Class[] { interfaceClass, LoadedLibrary.class },
+            new Class<?>[] { interfaceClass, LoadedLibrary.class },
             new InvocationHandler() {
+                @Override
                 public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
                     throw ex;
                 }

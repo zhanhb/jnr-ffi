@@ -27,7 +27,7 @@ import java.util.EnumSet;
 /**
  *
  */
-public final class BufferParameterStrategy extends ParameterStrategy {
+public final class BufferParameterStrategy extends ParameterStrategy<Buffer> {
     private final int shift;
 
     private BufferParameterStrategy(StrategyType type, ObjectParameterType.ComponentType componentType) {
@@ -35,29 +35,24 @@ public final class BufferParameterStrategy extends ParameterStrategy {
         this.shift = calculateShift(componentType);
     }
 
+    @Override
     public long address(Buffer buffer) {
         return buffer != null && buffer.isDirect() ? MemoryIO.getInstance().getDirectBufferAddress(buffer) + (buffer.position() << shift) : 0L;
     }
 
     @Override
-    public long address(Object o) {
-        return address((Buffer) o);
+    public Object object(Buffer o) {
+        return o.array();
     }
 
     @Override
-    public Object object(Object o) {
-        return ((Buffer) o).array();
-    }
-
-    @Override
-    public int offset(Object o) {
-        Buffer buffer = (Buffer) o;
+    public int offset(Buffer buffer) {
         return buffer.arrayOffset() + buffer.position();
     }
 
     @Override
-    public int length(Object o) {
-        return ((Buffer) o).remaining();
+    public int length(Buffer o) {
+        return o.remaining();
     }
 
     static int calculateShift(ObjectParameterType.ComponentType componentType) {

@@ -28,27 +28,27 @@ import java.util.*;
  */
 @ToNativeConverter.NoContext
 @FromNativeConverter.NoContext
-public final class EnumMapper {
+public final class EnumMapper<E extends Enum<E>> {
 
     private static final class StaticDataHolder {
-        private static volatile Map<Class<? extends Enum>, EnumMapper> MAPPERS = Collections.emptyMap();
+        private static volatile Map<Class<? extends Enum<?>>, EnumMapper<?>> MAPPERS = Collections.emptyMap();
     }
     
-    private final Class<? extends Enum> enumClass;
+    private final Class<E> enumClass;
     private final Integer[] intValues;
     private final Long[] longValues;
-    private final Map<Number, Enum> reverseLookupMap = new HashMap<Number, Enum>();
+    private final Map<Number, E> reverseLookupMap = new HashMap<Number, E>();
 
-    private EnumMapper(Class<? extends Enum> enumClass) {
+    private EnumMapper(Class<E> enumClass) {
         this.enumClass = enumClass;
 
-        EnumSet<? extends Enum> enums = EnumSet.allOf(enumClass);
+        EnumSet<E> enums = EnumSet.allOf(enumClass);
 
         this.intValues = new Integer[enums.size()];
         this.longValues = new Long[enums.size()];
         Method intValueMethod = getNumberValueMethod(enumClass, int.class);
         Method longValueMethod = getNumberValueMethod(enumClass, long.class);
-        for (Enum e : enums) {
+        for (E e : enums) {
             Number value;
             if (longValueMethod != null) {
                 value = reflectedNumberValue(e, longValueMethod);
@@ -71,8 +71,9 @@ public final class EnumMapper {
         public int intValue();
     }
 
-    public static EnumMapper getInstance(Class<? extends Enum> enumClass) {
-        EnumMapper mapper = StaticDataHolder.MAPPERS.get(enumClass);
+    public static <E extends Enum<E>> EnumMapper<E> getInstance(Class<E> enumClass) {
+        @SuppressWarnings("unchecked")
+        EnumMapper<E> mapper = (EnumMapper<E>) StaticDataHolder.MAPPERS.get(enumClass);
         if (mapper != null) {
             return mapper;
         }
@@ -80,11 +81,11 @@ public final class EnumMapper {
         return addMapper(enumClass);
     }
 
-    private static synchronized EnumMapper addMapper(Class<? extends Enum> enumClass) {
-        EnumMapper mapper = new EnumMapper(enumClass);
+    private static synchronized <E extends Enum<E>> EnumMapper<E> addMapper(Class<E> enumClass) {
+        EnumMapper<E> mapper = new EnumMapper<E>(enumClass);
 
-        Map<Class<? extends Enum>, EnumMapper> tmp
-                = new IdentityHashMap<Class<? extends Enum>, EnumMapper>(StaticDataHolder.MAPPERS);
+        Map<Class<? extends Enum<?>>, EnumMapper<?>> tmp
+                = new IdentityHashMap<Class<? extends Enum<?>>, EnumMapper<?>>(StaticDataHolder.MAPPERS);
         tmp.put(enumClass, mapper);
 
         StaticDataHolder.MAPPERS = tmp;
@@ -92,7 +93,7 @@ public final class EnumMapper {
         return mapper;
     }
 
-    private static Method getNumberValueMethod(Class c, Class numberClass) {
+    private static Method getNumberValueMethod(Class<?> c, Class<?> numberClass) {
         try {
             Method m = c.getDeclaredMethod(numberClass.getSimpleName() + "Value");
             return m != null && numberClass == m.getReturnType() ? m : null;
@@ -102,7 +103,7 @@ public final class EnumMapper {
         }
     }
 
-    private static Number reflectedNumberValue(Enum e, Method m) {
+    private static <E extends Enum<E>> Number reflectedNumberValue(E e, Method m) {
         try {
             return (Number) m.invoke(e);
         } catch (Throwable ex) {
@@ -110,7 +111,7 @@ public final class EnumMapper {
         }
     }
 
-    public final Integer integerValue(Enum value) {
+    public final Integer integerValue(E value) {
         if (value.getClass() != enumClass) {
             throw new IllegalArgumentException("enum class mismatch, " + value.getClass());
         }
@@ -118,11 +119,11 @@ public final class EnumMapper {
         return intValues[value.ordinal()];
     }
 
-    public final int intValue(Enum value) {
+    public final int intValue(E value) {
         return integerValue(value);
     }
 
-    public final Long longValue(Enum value) {
+    public final Long longValue(E value) {
         if (value.getClass() != enumClass) {
             throw new IllegalArgumentException("enum class mismatch, " + value.getClass());
         }
@@ -130,24 +131,24 @@ public final class EnumMapper {
         return longValues[value.ordinal()];
     }
 
-    public Enum valueOf(int value) {
+    public E valueOf(int value) {
         return reverseLookup(value);
     }
 
-    public Enum valueOf(long value) {
+    public E valueOf(long value) {
         return reverseLookup(value);
     }
 
-    public Enum valueOf(Number value) {
+    public E valueOf(Number value) {
         return reverseLookup(value);
     }
 
-    private Enum reverseLookup(Number value) {
-        Enum e = reverseLookupMap.get(value);
+    private E reverseLookup(Number value) {
+        E e = reverseLookupMap.get(value);
         return e != null ? e : badValue(value);
     }
 
-    private Enum badValue(Number value) {
+    private E badValue(Number value) {
         //
         // No value found - try to find the default value for unknown values.
         // This is useful for enums that aren't fixed in stone and/or where you

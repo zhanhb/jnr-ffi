@@ -57,12 +57,12 @@ class AsmBuilder {
     private final ObjectNameGenerator variableAccessorId = new ObjectNameGenerator("variableAccessor");
     private final ObjectNameGenerator genericObjectId = new ObjectNameGenerator("objectField");
 
-    private final Map<ToNativeConverter, ObjectField> toNativeConverters = new IdentityHashMap<ToNativeConverter, ObjectField>();
+    private final Map<ToNativeConverter<?, ?>, ObjectField> toNativeConverters = new IdentityHashMap<ToNativeConverter<?, ?>, ObjectField>();
     private final Map<ToNativeContext, ObjectField> toNativeContexts = new IdentityHashMap<ToNativeContext, ObjectField>();
-    private final Map<FromNativeConverter, ObjectField> fromNativeConverters = new IdentityHashMap<FromNativeConverter, ObjectField>();
+    private final Map<FromNativeConverter<?, ?>, ObjectField> fromNativeConverters = new IdentityHashMap<FromNativeConverter<?, ?>, ObjectField>();
     private final Map<FromNativeContext, ObjectField> fromNativeContexts = new IdentityHashMap<FromNativeContext, ObjectField>();
     private final Map<ObjectParameterInfo, ObjectField> objectParameterInfo = new HashMap<ObjectParameterInfo, ObjectField>();
-    private final Map<Variable, ObjectField> variableAccessors = new HashMap<Variable, ObjectField>();
+    private final Map<Variable<?>, ObjectField> variableAccessors = new HashMap<Variable<?>, ObjectField>();
     private final Map<CallContext, ObjectField> callContextMap = new HashMap<CallContext, ObjectField>();
     private final Map<Long, ObjectField> functionAddresses = new HashMap<Long, ObjectField>();
     private final Map<Object, ObjectField> genericObjects = new IdentityHashMap<Object, ObjectField>();
@@ -104,14 +104,14 @@ class AsmBuilder {
         }
     }
 
-    <T> ObjectField addField(Map<T, ObjectField> map, T value, Class klass, ObjectNameGenerator objectNameGenerator) {
+    <T> ObjectField addField(Map<T, ObjectField> map, T value, Class<?> klass, ObjectNameGenerator objectNameGenerator) {
         ObjectField field = new ObjectField(objectNameGenerator.generateName(), value, klass);
         objectFields.add(field);
         map.put(value, field);
         return field;
     }
 
-    <T> ObjectField getField(Map<T, ObjectField> map, T value, Class klass, ObjectNameGenerator objectNameGenerator) {
+    <T> ObjectField getField(Map<T, ObjectField> map, T value, Class<?> klass, ObjectNameGenerator objectNameGenerator) {
         ObjectField field = map.get(value);
         return field != null ? field : addField(map, value, klass, objectNameGenerator);
     }
@@ -132,23 +132,23 @@ class AsmBuilder {
         return getObjectField(runtime, runtime.getClass());
     }
 
-    String getFromNativeConverterName(FromNativeConverter converter) {
+    String getFromNativeConverterName(FromNativeConverter<?, ?> converter) {
         return getFromNativeConverterField(converter).name;
     }
 
-    String getToNativeConverterName(ToNativeConverter converter) {
+    String getToNativeConverterName(ToNativeConverter<?, ?> converter) {
         return getToNativeConverterField(converter).name;
     }
 
-    private static Class nearestClass(Object obj, Class defaultClass) {
+    private static Class<?> nearestClass(Object obj, Class<?> defaultClass) {
         return Modifier.isPublic(obj.getClass().getModifiers()) ? obj.getClass() : defaultClass;
     }
 
-    ObjectField getToNativeConverterField(ToNativeConverter converter) {
+    ObjectField getToNativeConverterField(ToNativeConverter<?, ?> converter) {
         return getField(toNativeConverters, converter, nearestClass(converter, ToNativeConverter.class), toNativeConverterId);
     }
 
-    ObjectField getFromNativeConverterField(FromNativeConverter converter) {
+    ObjectField getFromNativeConverterField(FromNativeConverter<?, ?> converter) {
         return getField(fromNativeConverters, converter, nearestClass(converter, FromNativeConverter.class), fromNativeConverterId);
     }
 
@@ -165,24 +165,24 @@ class AsmBuilder {
         return getField(objectParameterInfo, info, ObjectParameterInfo.class, objectParameterInfoId).name;
     }
 
-    String getObjectFieldName(Object obj, Class klass) {
+    String getObjectFieldName(Object obj, Class<?> klass) {
         return getField(genericObjects, obj, klass, genericObjectId).name;
     }
 
-    ObjectField getObjectField(Object obj, Class klass) {
+    ObjectField getObjectField(Object obj, Class<?> klass) {
         return getField(genericObjects, obj, klass, genericObjectId);
     }
 
-    String getVariableName(Variable variableAccessor) {
+    String getVariableName(Variable<?> variableAccessor) {
         return getField(variableAccessors, variableAccessor, Variable.class, variableAccessorId).name;
     }
 
     public static final class ObjectField {
         public final String name;
         public final Object value;
-        public final Class klass;
+        public final Class<?> klass;
 
-        public ObjectField(String fieldName, Object fieldValue, Class fieldClass) {
+        public ObjectField(String fieldName, Object fieldValue, Class<?> fieldClass) {
             this.name = fieldName;
             this.value = fieldValue;
             this.klass = fieldClass;
@@ -212,7 +212,7 @@ class AsmBuilder {
             init.aaload();
 
             if (f.klass.isPrimitive()) {
-                Class boxedType = boxedType(f.klass);
+                Class<?> boxedType = boxedType(f.klass);
                 init.checkcast(boxedType);
                 unboxNumber(init, boxedType, f.klass);
             } else {

@@ -45,8 +45,8 @@ final class InvokerTypeMapper extends AbstractSignatureTypeMapper implements Sig
         this.structResultConverterFactory = new StructByReferenceResultConverterFactory(classLoader, asmEnabled);
     }
 
-    public FromNativeConverter getFromNativeConverter(SignatureType signatureType, FromNativeContext fromNativeContext) {
-        FromNativeConverter converter;
+    public FromNativeConverter<?, ?> getFromNativeConverter(SignatureType signatureType, FromNativeContext fromNativeContext) {
+        FromNativeConverter<?, ?> converter;
 
         if (Enum.class.isAssignableFrom(signatureType.getDeclaredType())) {
             return EnumConverter.getInstance(signatureType.getDeclaredType().asSubclass(Enum.class));
@@ -72,9 +72,10 @@ final class InvokerTypeMapper extends AbstractSignatureTypeMapper implements Sig
 
     }
 
-    public ToNativeConverter getToNativeConverter(SignatureType signatureType, ToNativeContext context) {
-        Class javaType = signatureType.getDeclaredType();
-        ToNativeConverter converter;
+    @SuppressWarnings("unchecked")
+    public ToNativeConverter<?, ?> getToNativeConverter(SignatureType signatureType, ToNativeContext context) {
+        Class<?> javaType = signatureType.getDeclaredType();
+        ToNativeConverter<?, ?> converter;
 
         if (Enum.class.isAssignableFrom(javaType)) {
             return EnumConverter.getInstance(javaType.asSubclass(Enum.class));
@@ -162,7 +163,7 @@ final class InvokerTypeMapper extends AbstractSignatureTypeMapper implements Sig
     }
 
 
-    private static boolean isDelegate(Class klass) {
+    private static boolean isDelegate(Class<?> klass) {
         for (Method m : klass.getMethods()) {
             if (m.isAnnotationPresent(Delegate.class)) {
                 return true;

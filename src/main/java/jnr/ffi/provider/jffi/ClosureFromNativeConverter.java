@@ -55,10 +55,10 @@ abstract public class ClosureFromNativeConverter implements FromNativeConverter<
 
     public static final class ProxyConverter extends ClosureFromNativeConverter {
         private final jnr.ffi.Runtime runtime;
-        private final Constructor closureConstructor;
+        private final Constructor<?> closureConstructor;
         private final Object[] initFields;
 
-        public ProxyConverter(jnr.ffi.Runtime runtime, Constructor closureConstructor, Object[] initFields) {
+        public ProxyConverter(jnr.ffi.Runtime runtime, Constructor<?> closureConstructor, Object[] initFields) {
             this.runtime = runtime;
             this.closureConstructor = closureConstructor;
             this.initFields = initFields.clone();
@@ -91,7 +91,7 @@ abstract public class ClosureFromNativeConverter implements FromNativeConverter<
 
 
     private static final AtomicLong nextClassID = new AtomicLong(0);
-    private static FromNativeConverter newClosureConverter(jnr.ffi.Runtime runtime, AsmClassLoader classLoader, Class closureClass,
+    private static FromNativeConverter<?, Pointer> newClosureConverter(jnr.ffi.Runtime runtime, AsmClassLoader classLoader, Class<?> closureClass,
                                                                         SignatureTypeMapper typeMapper) {
 
         ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
@@ -121,7 +121,7 @@ abstract public class ClosureFromNativeConverter implements FromNativeConverter<
         init.visitMaxs(10, 10);
         init.visitEnd();
 
-        Class implClass = loadClass(classLoader, className, cw);
+        Class<?> implClass = loadClass(classLoader, className, cw);
         try {
             return new ProxyConverter(runtime, implClass.getConstructor(jnr.ffi.Runtime.class, long.class, Object[].class), builder.getObjectFieldValues());
         } catch (Throwable ex) {
@@ -129,7 +129,7 @@ abstract public class ClosureFromNativeConverter implements FromNativeConverter<
         }
     }
 
-    private static Class loadClass(AsmClassLoader classLoader, String className, ClassWriter cw) {
+    private static Class<?> loadClass(AsmClassLoader classLoader, String className, ClassWriter cw) {
         try {
             byte[] bytes = cw.toByteArray();
             if (AsmLibraryLoader.DEBUG) {
@@ -143,13 +143,13 @@ abstract public class ClosureFromNativeConverter implements FromNativeConverter<
         }
     }
 
-    private static void generateInvocation(jnr.ffi.Runtime runtime, AsmBuilder builder, Class closureClass, SignatureTypeMapper typeMapper) {
+    private static void generateInvocation(jnr.ffi.Runtime runtime, AsmBuilder builder, Class<?> closureClass, SignatureTypeMapper typeMapper) {
         Method closureMethod = getDelegateMethod(closureClass);
 
         FromNativeContext resultContext = new MethodResultContext(runtime, closureMethod);
         SignatureType signatureType = DefaultSignatureType.create(closureMethod.getReturnType(), resultContext);
         jnr.ffi.mapper.FromNativeType fromNativeType = typeMapper.getFromNativeType(signatureType, resultContext);
-        FromNativeConverter fromNativeConverter = fromNativeType != null ? fromNativeType.getFromNativeConverter() : null;
+        FromNativeConverter<?, ?> fromNativeConverter = fromNativeType != null ? fromNativeType.getFromNativeConverter() : null;
         ResultType resultType = getResultType(runtime, closureMethod.getReturnType(),
                 resultContext.getAnnotations(), fromNativeConverter, resultContext);
 
@@ -162,7 +162,7 @@ abstract public class ClosureFromNativeConverter implements FromNativeConverter<
         LocalVariableAllocator localVariableAllocator = new LocalVariableAllocator(parameterTypes);
 
 
-        Class[] javaParameterTypes = new Class[parameterTypes.length];
+        Class<?>[] javaParameterTypes = new Class<?>[parameterTypes.length];
         for (int i = 0; i < parameterTypes.length; i++) {
             javaParameterTypes[i] = parameterTypes[i].getDeclaredType();
         }

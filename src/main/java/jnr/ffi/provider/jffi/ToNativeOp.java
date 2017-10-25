@@ -45,12 +45,12 @@ abstract class ToNativeOp {
         return isPrimitive;
     }
 
-    abstract void emitPrimitive(SkinnyMethodAdapter mv, Class primitiveClass, NativeType nativeType);
+    abstract void emitPrimitive(SkinnyMethodAdapter mv, Class<?> primitiveClass, NativeType nativeType);
 
-    private static final Map<Class, ToNativeOp> operations;
+    private static final Map<Class<?>, ToNativeOp> operations;
     static {
-        Map<Class, ToNativeOp> m = new IdentityHashMap<Class, ToNativeOp>();
-        for (Class c : new Class[] { byte.class, char.class, short.class, int.class, long.class, boolean.class }) {
+        Map<Class<?>, ToNativeOp> m = new IdentityHashMap<Class<?>, ToNativeOp>();
+        for (Class<?> c : new Class<?>[] { byte.class, char.class, short.class, int.class, long.class, boolean.class }) {
             m.put(c, new Integral(c));
             m.put(boxedType(c), new Integral(boxedType(c)));
         }
@@ -74,8 +74,8 @@ abstract class ToNativeOp {
     }
 
     static abstract class Primitive extends ToNativeOp {
-        protected final Class javaType;
-        protected Primitive(Class javaType) {
+        protected final Class<?> javaType;
+        protected Primitive(Class<?> javaType) {
             super(true);
             this.javaType = javaType;
         }
@@ -83,12 +83,12 @@ abstract class ToNativeOp {
 
 
     static class Integral extends Primitive {
-        Integral(Class javaType) {
+        Integral(Class<?> javaType) {
             super(javaType);
         }
 
         @Override
-        public void emitPrimitive(SkinnyMethodAdapter mv, Class primitiveClass, NativeType nativeType) {
+        public void emitPrimitive(SkinnyMethodAdapter mv, Class<?> primitiveClass, NativeType nativeType) {
             if (javaType.isPrimitive()) {
                 NumberUtil.convertPrimitive(mv, javaType, primitiveClass, nativeType);
             } else {
@@ -98,12 +98,12 @@ abstract class ToNativeOp {
     }
 
     static class Float32 extends Primitive {
-        Float32(Class javaType) {
+        Float32(Class<?> javaType) {
             super(javaType);
         }
 
         @Override
-        void emitPrimitive(SkinnyMethodAdapter mv, Class primitiveClass, NativeType nativeType) {
+        void emitPrimitive(SkinnyMethodAdapter mv, Class<?> primitiveClass, NativeType nativeType) {
             if (!javaType.isPrimitive()) {
                 unboxNumber(mv, javaType, float.class);
             }
@@ -115,12 +115,12 @@ abstract class ToNativeOp {
     }
 
     static class Float64 extends Primitive {
-        Float64(Class javaType) {
+        Float64(Class<?> javaType) {
             super(javaType);
         }
 
         @Override
-        void emitPrimitive(SkinnyMethodAdapter mv, Class primitiveClass, NativeType nativeType) {
+        void emitPrimitive(SkinnyMethodAdapter mv, Class<?> primitiveClass, NativeType nativeType) {
             if (!javaType.isPrimitive()) {
                 unboxNumber(mv, javaType, double.class);
             }
@@ -138,7 +138,7 @@ abstract class ToNativeOp {
         }
 
         @Override
-        void emitPrimitive(SkinnyMethodAdapter mv, Class primitiveClass, NativeType nativeType) {
+        void emitPrimitive(SkinnyMethodAdapter mv, Class<?> primitiveClass, NativeType nativeType) {
             // delegates are always direct, so handle without the strategy processing
             unboxPointer(mv, primitiveClass);
         }
@@ -150,7 +150,7 @@ abstract class ToNativeOp {
         }
 
         @Override
-        void emitPrimitive(SkinnyMethodAdapter mv, Class primitiveClass, NativeType nativeType) {
+        void emitPrimitive(SkinnyMethodAdapter mv, Class<?> primitiveClass, NativeType nativeType) {
             if (long.class == primitiveClass) {
                 mv.invokestatic(AsmRuntime.class, "longValue", long.class, Address.class);
             } else {

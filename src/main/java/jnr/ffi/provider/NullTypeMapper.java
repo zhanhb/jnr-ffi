@@ -25,11 +25,13 @@ import jnr.ffi.mapper.*;
  */
 public class NullTypeMapper extends AbstractSignatureTypeMapper implements TypeMapper, SignatureTypeMapper {
     
-    public FromNativeConverter getFromNativeConverter(Class type) {
+    @Override
+    public FromNativeConverter<?, ?> getFromNativeConverter(Class<?> type) {
         return null;
     }
 
-    public ToNativeConverter getToNativeConverter(Class type) {
+    @Override
+    public ToNativeConverter<?, ?> getToNativeConverter(Class<?> type) {
         return null;
     }
 

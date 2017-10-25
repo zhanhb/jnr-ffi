@@ -102,7 +102,7 @@ class FastNumericMethodGenerator extends AbstractFastNumericMethodGenerator {
     }
 
     @Override
-    String getInvokerSignature(int parameterCount, Class nativeIntType) {
+    String getInvokerSignature(int parameterCount, Class<?> nativeIntType) {
 
         if (parameterCount <= MAX_PARAMETERS && parameterCount <= signatures.length) {
             return signatures[parameterCount];
@@ -113,7 +113,7 @@ class FastNumericMethodGenerator extends AbstractFastNumericMethodGenerator {
     }
 
     @Override
-    Class getInvokerType() {
+    Class<?> getInvokerType() {
         return long.class;
     }
 
@@ -137,7 +137,7 @@ class FastNumericMethodGenerator extends AbstractFastNumericMethodGenerator {
             || (parameterType.getNativeType() == NativeType.ADDRESS && isSupportedPointerParameterType(parameterType.effectiveJavaType()));
     }
 
-    private static boolean isSupportedPointerParameterType(Class javaParameterType) {
+    private static boolean isSupportedPointerParameterType(Class<?> javaParameterType) {
         return Pointer.class.isAssignableFrom(javaParameterType)
                 || ByteBuffer.class.isAssignableFrom(javaParameterType)
                 || ShortBuffer.class.isAssignableFrom(javaParameterType)

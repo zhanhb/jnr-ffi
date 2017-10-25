@@ -26,25 +26,28 @@ import jnr.ffi.util.EnumMapper;
 @FromNativeConverter.NoContext
 @ToNativeConverter.Cacheable
 @FromNativeConverter.Cacheable
-public final class EnumConverter implements DataConverter<Enum, Integer> {
-    private final EnumMapper mapper;
+public final class EnumConverter<E extends Enum<E>> implements DataConverter<E, Integer> {
+    private final EnumMapper<E> mapper;
 
-    public static EnumConverter getInstance(Class<? extends Enum> enumClass) {
-        return new EnumConverter(enumClass);
+    public static <E extends Enum<E>> EnumConverter<E> getInstance(Class<E> enumClass) {
+        return new EnumConverter<E>(enumClass);
     }
 
-    private EnumConverter(Class<? extends Enum> enumClass) {
+    private EnumConverter(Class<E> enumClass) {
         this.mapper = EnumMapper.getInstance(enumClass);
     }
 
-    public Enum fromNative(Integer nativeValue, FromNativeContext context) {
+    @Override
+    public E fromNative(Integer nativeValue, FromNativeContext context) {
         return mapper.valueOf(nativeValue);
     }
 
-    public Integer toNative(Enum value, ToNativeContext context) {
+    @Override
+    public Integer toNative(E value, ToNativeContext context) {
         return mapper.integerValue(value);
     }
 
+    @Override
     public Class<Integer> nativeType() {
         return Integer.class;
     }

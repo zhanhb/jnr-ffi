@@ -28,7 +28,7 @@ import static jnr.ffi.util.Annotations.sortedAnnotationCollection;
 *
 */
 public interface SignatureType {
-    public Class getDeclaredType();
+    public Class<?> getDeclaredType();
     public Collection<Annotation> getAnnotations();
     public java.lang.reflect.Type getGenericType();
 }

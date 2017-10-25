@@ -29,12 +29,12 @@ import java.util.Collection;
 import java.util.Iterator;
 
 public class InterfaceScanner {
-    private final Class interfaceClass;
+    private final Class<?> interfaceClass;
     private final SignatureTypeMapper typeMapper;
     private final CallingConvention callingConvention;
     private final Method[] methods;
 
-    public InterfaceScanner(Class interfaceClass, SignatureTypeMapper typeMapper, CallingConvention callingConvention) {
+    public InterfaceScanner(Class<?> interfaceClass, SignatureTypeMapper typeMapper, CallingConvention callingConvention) {
         this.interfaceClass = interfaceClass;
         this.typeMapper = typeMapper;
         this.methods = interfaceClass.getMethods();
@@ -75,7 +75,7 @@ public class InterfaceScanner {
         Method isDefault = null;
 
         try {
-            isDefault = Method.class.getMethod("isDefault", null);
+            isDefault = Method.class.getMethod("isDefault");
         } catch (NoSuchMethodException e) {
             // expected for jre < 1.8
         }

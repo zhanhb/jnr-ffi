@@ -64,7 +64,7 @@ final class InvokerUtil {
         return jnr.ffi.CallingConvention.DEFAULT;
     }
 
-    public static jnr.ffi.CallingConvention getCallingConvention(Class interfaceClass, Map<LibraryOption, ?> options) {
+    public static jnr.ffi.CallingConvention getCallingConvention(Class<?> interfaceClass, Map<LibraryOption, ?> options) {
         if (interfaceClass.isAnnotationPresent(StdCall.class)) {
             return jnr.ffi.CallingConvention.STDCALL;
         }
@@ -125,8 +125,8 @@ final class InvokerUtil {
         return toNativeType != null ? ConverterMetaData.getAnnotations(toNativeType.getToNativeConverter()) : Annotations.EMPTY_ANNOTATIONS;
     }
 
-    static ResultType getResultType(jnr.ffi.Runtime runtime, Class type, Collection<Annotation> annotations,
-                                    FromNativeConverter fromNativeConverter, FromNativeContext fromNativeContext) {
+    static ResultType getResultType(jnr.ffi.Runtime runtime, Class<?> type, Collection<Annotation> annotations,
+                                    FromNativeConverter<?, ?> fromNativeConverter, FromNativeContext fromNativeContext) {
         Collection<Annotation> converterAnnotations = ConverterMetaData.getAnnotations(fromNativeConverter);
         Collection<Annotation> allAnnotations = Annotations.mergeAnnotations(annotations, converterAnnotations);
         NativeType nativeType = getMethodResultNativeType(runtime,
@@ -135,27 +135,27 @@ final class InvokerUtil {
         return new ResultType(type, nativeType, allAnnotations, fromNativeConverter, useContext ? fromNativeContext : null);
     }
 
-    static ResultType getResultType(jnr.ffi.Runtime runtime, Class type, Collection<Annotation> annotations, 
+    static ResultType getResultType(jnr.ffi.Runtime runtime, Class<?> type, Collection<Annotation> annotations, 
                                     jnr.ffi.mapper.FromNativeType fromNativeType, FromNativeContext fromNativeContext) {
         Collection<Annotation> converterAnnotations = getAnnotations(fromNativeType);
         Collection<Annotation> allAnnotations = Annotations.mergeAnnotations(annotations, converterAnnotations);
-        FromNativeConverter fromNativeConverter = fromNativeType != null ? fromNativeType.getFromNativeConverter() : null;
+        FromNativeConverter<?, ?> fromNativeConverter = fromNativeType != null ? fromNativeType.getFromNativeConverter() : null;
         NativeType nativeType = getMethodResultNativeType(runtime,
                 fromNativeConverter != null ? fromNativeConverter.nativeType() : type, allAnnotations);
         boolean useContext = fromNativeConverter != null && !hasAnnotation(converterAnnotations, FromNativeConverter.NoContext.class);
         return new ResultType(type, nativeType, allAnnotations, fromNativeConverter, useContext ? fromNativeContext : null);
     }
 
-    private static ParameterType getParameterType(jnr.ffi.Runtime runtime, Class type, Collection<Annotation> annotations,
-                                          ToNativeConverter toNativeConverter, ToNativeContext toNativeContext) {
+    private static ParameterType getParameterType(jnr.ffi.Runtime runtime, Class<?> type, Collection<Annotation> annotations,
+                                          ToNativeConverter<?, ?> toNativeConverter, ToNativeContext toNativeContext) {
         NativeType nativeType = getMethodParameterNativeType(runtime,
                 toNativeConverter != null ? toNativeConverter.nativeType() : type, annotations);
         return new ParameterType(type, nativeType, annotations, toNativeConverter, toNativeContext);
     }
 
-    private static ParameterType getParameterType(jnr.ffi.Runtime runtime, Class type, Collection<Annotation> annotations,
+    private static ParameterType getParameterType(jnr.ffi.Runtime runtime, Class<?> type, Collection<Annotation> annotations,
                                                   jnr.ffi.mapper.ToNativeType toNativeType, ToNativeContext toNativeContext) {
-        ToNativeConverter toNativeConverter = toNativeType != null ? toNativeType.getToNativeConverter() : null;
+        ToNativeConverter<?, ?> toNativeConverter = toNativeType != null ? toNativeType.getToNativeConverter() : null;
         NativeType nativeType = getMethodParameterNativeType(runtime,
                 toNativeConverter != null ? toNativeConverter.nativeType() : type, annotations);
         return new ParameterType(type, nativeType, annotations, toNativeConverter, toNativeContext);
@@ -163,7 +163,7 @@ final class InvokerUtil {
 
     static ParameterType[] getParameterTypes(jnr.ffi.Runtime runtime, SignatureTypeMapper typeMapper,
                                              Method m) {
-        final Class[] javaParameterTypes = m.getParameterTypes();
+        final Class<?>[] javaParameterTypes = m.getParameterTypes();
         final Annotation[][] parameterAnnotations = m.getParameterAnnotations();
         ParameterType[] parameterTypes = new ParameterType[javaParameterTypes.length];
 
@@ -172,7 +172,7 @@ final class InvokerUtil {
             ToNativeContext toNativeContext = new MethodParameterContext(runtime, m, pidx, annotations);
             SignatureType signatureType = DefaultSignatureType.create(javaParameterTypes[pidx], toNativeContext);
             jnr.ffi.mapper.ToNativeType toNativeType = typeMapper.getToNativeType(signatureType, toNativeContext);
-            ToNativeConverter toNativeConverter = toNativeType != null ? toNativeType.getToNativeConverter() : null;
+            ToNativeConverter<?, ?> toNativeConverter = toNativeType != null ? toNativeType.getToNativeConverter() : null;
             Collection<Annotation> converterAnnotations = ConverterMetaData.getAnnotations(toNativeConverter);
             Collection<Annotation> allAnnotations = Annotations.mergeAnnotations(annotations, converterAnnotations);
 
@@ -209,11 +209,11 @@ final class InvokerUtil {
     }
 
     
-    static NativeType getMethodParameterNativeType(jnr.ffi.Runtime runtime, Class parameterClass, Collection<Annotation> annotations) {
+    static NativeType getMethodParameterNativeType(jnr.ffi.Runtime runtime, Class<?> parameterClass, Collection<Annotation> annotations) {
         return Types.getType(runtime, parameterClass, annotations).getNativeType();
     }
 
-    static NativeType getMethodResultNativeType(jnr.ffi.Runtime runtime, Class resultClass, Collection<Annotation> annotations) {
+    static NativeType getMethodResultNativeType(jnr.ffi.Runtime runtime, Class<?> resultClass, Collection<Annotation> annotations) {
         return Types.getType(runtime, resultClass, annotations).getNativeType();
     }
     

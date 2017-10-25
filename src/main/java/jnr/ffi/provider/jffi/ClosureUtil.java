@@ -41,26 +41,26 @@ final class ClosureUtil {
         ToNativeContext context = new SimpleNativeContext(runtime, annotations);
         SignatureType signatureType = DefaultSignatureType.create(m.getReturnType(), context);
         jnr.ffi.mapper.ToNativeType toNativeType = typeMapper.getToNativeType(signatureType, context);
-        ToNativeConverter converter = toNativeType != null ? toNativeType.getToNativeConverter() : null;
-        Class javaClass = converter != null ? converter.nativeType() : m.getReturnType();
+        ToNativeConverter<?, ?> converter = toNativeType != null ? toNativeType.getToNativeConverter() : null;
+        Class<?> javaClass = converter != null ? converter.nativeType() : m.getReturnType();
         NativeType nativeType = Types.getType(runtime, javaClass, annotations).getNativeType();
         return new jnr.ffi.provider.ToNativeType(m.getReturnType(), nativeType, annotations, converter, context);
     }
 
     static jnr.ffi.provider.FromNativeType getParameterType(jnr.ffi.Runtime runtime, Method m, int idx, SignatureTypeMapper typeMapper) {
         Collection<Annotation> annotations = sortedAnnotationCollection(m.getParameterAnnotations()[idx]);
-        Class declaredJavaClass = m.getParameterTypes()[idx];
+        Class<?> declaredJavaClass = m.getParameterTypes()[idx];
         FromNativeContext context = new SimpleNativeContext(runtime, annotations);
         SignatureType signatureType = new DefaultSignatureType(declaredJavaClass, context.getAnnotations(), m.getGenericParameterTypes()[idx]);
         jnr.ffi.mapper.FromNativeType fromNativeType = typeMapper.getFromNativeType(signatureType, context);
-        FromNativeConverter converter = fromNativeType != null ? fromNativeType.getFromNativeConverter() : null;
-        Class javaClass = converter != null ? converter.nativeType() : declaredJavaClass;
+        FromNativeConverter<?, ?> converter = fromNativeType != null ? fromNativeType.getFromNativeConverter() : null;
+        Class<?> javaClass = converter != null ? converter.nativeType() : declaredJavaClass;
         NativeType nativeType = Types.getType(runtime, javaClass, annotations).getNativeType();
         return new jnr.ffi.provider.FromNativeType(declaredJavaClass, nativeType, annotations, converter, context);
     }
 
 
-    static Method getDelegateMethod(Class closureClass) {
+    static Method getDelegateMethod(Class<?> closureClass) {
         Method callMethod = null;
         for (Method m : closureClass.getMethods()) {
             if (m.isAnnotationPresent(Delegate.class) && Modifier.isPublic(m.getModifiers())

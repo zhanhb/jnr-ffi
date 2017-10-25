@@ -30,8 +30,8 @@ import java.util.Collection;
  */
 public class ParameterType extends ToNativeType {
 
-    public ParameterType(Class javaType, NativeType nativeType, Collection<Annotation> annotations,
-                  ToNativeConverter toNativeConverter, ToNativeContext toNativeContext) {
+    public ParameterType(Class<?> javaType, NativeType nativeType, Collection<Annotation> annotations,
+                  ToNativeConverter<?, ?> toNativeConverter, ToNativeContext toNativeContext) {
         super(javaType, nativeType, annotations, toNativeConverter, toNativeContext);
     }
 }

@@ -106,12 +106,12 @@ public final class CachingTypeMapper extends AbstractSignatureTypeMapper impleme
 
     private static final class InvalidType implements ToNativeType, FromNativeType {
         @Override
-        public FromNativeConverter getFromNativeConverter() {
+        public FromNativeConverter<?, ?> getFromNativeConverter() {
             return null;
         }
 
         @Override
-        public ToNativeConverter getToNativeConverter() {
+        public ToNativeConverter<?, ?> getToNativeConverter() {
             return null;
         }
     }

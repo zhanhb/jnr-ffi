@@ -151,7 +151,7 @@ final class DefaultInvokerFactory {
     }
 
     private static FunctionInvoker getFunctionInvoker(ResultType resultType) {
-        Class returnType = resultType.effectiveJavaType();
+        Class<?> returnType = resultType.effectiveJavaType();
         if (Void.class.isAssignableFrom(returnType) || void.class == returnType) {
             return VoidInvoker.INSTANCE;
         
@@ -202,7 +202,7 @@ final class DefaultInvokerFactory {
             : marshaller;
     }
 
-    static Marshaller getMarshaller(Class type, NativeType nativeType, Collection<Annotation> annotations) {
+    static Marshaller getMarshaller(Class<?> type, NativeType nativeType, Collection<Annotation> annotations) {
         if (Number.class.isAssignableFrom(type) || (type.isPrimitive() && Number.class.isAssignableFrom(getBoxedClass(type)))) {
             switch (nativeType) {
                 case SCHAR:
@@ -327,7 +327,7 @@ final class DefaultInvokerFactory {
             List<Class<? extends Annotation>> paramAnnotations = new ArrayList<Class<? extends Annotation>>();
 
             for (Object arg : varParam) {
-                if (arg instanceof Class && Annotation.class.isAssignableFrom((Class)arg)) {
+                if (arg instanceof Class<?> && Annotation.class.isAssignableFrom((Class)arg)) {
                     paramAnnotations.add((Class)arg);
                 } else {
                     Class<?> argClass;
@@ -484,7 +484,7 @@ final class DefaultInvokerFactory {
         private final FromNativeContext fromNativeContext;
         private final FunctionInvoker nativeInvoker;
 
-        public ConvertingInvoker(FromNativeConverter converter, FromNativeContext context, FunctionInvoker nativeInvoker) {
+        public ConvertingInvoker(FromNativeConverter<?, ?> converter, FromNativeContext context, FunctionInvoker nativeInvoker) {
             this.fromNativeConverter = converter;
             this.fromNativeContext = context;
             this.nativeInvoker = nativeInvoker;

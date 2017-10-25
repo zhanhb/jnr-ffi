@@ -28,17 +28,18 @@ import static jnr.ffi.util.Annotations.sortedAnnotationCollection;
 *
 */
 public final class DefaultSignatureType implements SignatureType {
-    private final Class declaredClass;
+    private final Class<?> declaredClass;
     private final Collection<Annotation> annotations;
     private final Type genericType;
 
-    public DefaultSignatureType(Class declaredClass, Collection<Annotation> annotations, Type genericType) {
+    public DefaultSignatureType(Class<?> declaredClass, Collection<Annotation> annotations, Type genericType) {
         this.declaredClass = declaredClass;
         this.annotations = sortedAnnotationCollection(annotations);
         this.genericType = genericType;
     }
 
-    public Class getDeclaredType() {
+    @Override
+    public Class<?> getDeclaredType() {
         return declaredClass;
     }
 
@@ -46,6 +47,7 @@ public final class DefaultSignatureType implements SignatureType {
         return annotations;
     }
 
+    @Override
     public Type getGenericType() {
         return genericType;
     }
@@ -71,13 +73,13 @@ public final class DefaultSignatureType implements SignatureType {
         return result;
     }
 
-    public static DefaultSignatureType create(Class type, FromNativeContext context) {
+    public static DefaultSignatureType create(Class<?> type, FromNativeContext context) {
         Type genericType = !type.isPrimitive() && context instanceof MethodResultContext
                 ? ((MethodResultContext) context).getMethod().getGenericReturnType() : type;
         return new DefaultSignatureType(type, context.getAnnotations(), genericType);
     }
 
-    public static DefaultSignatureType create(Class type, ToNativeContext context) {
+    public static DefaultSignatureType create(Class<?> type, ToNativeContext context) {
         Type genericType = type;
         if (!type.isPrimitive() && context instanceof MethodParameterContext) {
             MethodParameterContext methodParameterContext = (MethodParameterContext) context;

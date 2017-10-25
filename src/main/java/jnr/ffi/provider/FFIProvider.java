@@ -65,7 +65,7 @@ public abstract class FFIProvider {
             }
 
             try {
-                return (FFIProvider) Class.forName(providerName).newInstance();
+                return Class.forName(providerName).asSubclass(FFIProvider.class).newInstance();
 
             } catch (Throwable ex) {
                 return newInvalidProvider("could not load FFI provider " + providerName, ex);

@@ -71,14 +71,14 @@ public class ResultConverterTest {
 
     static final TypeMapper mapper = new TypeMapper() {
 
-        public FromNativeConverter getFromNativeConverter(Class type) {
+        public FromNativeConverter getFromNativeConverter(Class<?> type) {
             if (TestType.class == type) {
                 return new TestTypeResultConverter();
             }
             return null;
         }
 
-        public ToNativeConverter getToNativeConverter(Class type) {
+        public ToNativeConverter getToNativeConverter(Class<?> type) {
             return null;
         }
     };

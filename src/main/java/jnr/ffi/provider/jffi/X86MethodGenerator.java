@@ -50,6 +50,7 @@ class X86MethodGenerator implements MethodGenerator {
         this.compiler = compiler;
     }
 
+    @Override
     public boolean isSupported(ResultType resultType, ParameterType[] parameterTypes, CallingConvention callingConvention) {
         if (!ENABLED) {
             return false;
@@ -90,10 +91,11 @@ class X86MethodGenerator implements MethodGenerator {
                 && compiler.canCompile(resultType, parameterTypes, callingConvention);
     }
 
+    @Override
     public void generate(AsmBuilder builder, String functionName, Function function,
                          ResultType resultType, ParameterType[] parameterTypes, boolean ignoreError) {
 
-        Class[] nativeParameterTypes = new Class[parameterTypes.length];
+        Class<?>[] nativeParameterTypes = new Class<?>[parameterTypes.length];
         boolean wrapperNeeded = false;
 
         for (int i = 0; i < parameterTypes.length; ++i) {
@@ -105,7 +107,7 @@ class X86MethodGenerator implements MethodGenerator {
             }
         }
 
-        Class nativeReturnType;
+        Class<?> nativeReturnType;
         wrapperNeeded |= resultType.getFromNativeConverter() != null || !resultType.effectiveJavaType().isPrimitive();
         if (resultType.effectiveJavaType().isPrimitive()) {
             nativeReturnType = resultType.effectiveJavaType();
@@ -130,8 +132,8 @@ class X86MethodGenerator implements MethodGenerator {
 
     private static void generateWrapper(final AsmBuilder builder, String functionName, Function function,
                                         final ResultType resultType, final ParameterType[] parameterTypes,
-                                        String nativeMethodName, Class nativeReturnType, Class[] nativeParameterTypes) {
-        Class[] javaParameterTypes = new Class[parameterTypes.length];
+                                        String nativeMethodName, Class<?> nativeReturnType, Class<?>[] nativeParameterTypes) {
+        Class<?>[] javaParameterTypes = new Class<?>[parameterTypes.length];
         for (int i = 0; i < parameterTypes.length; i++) {
             javaParameterTypes[i] = parameterTypes[i].getDeclaredType();
         }
@@ -150,8 +152,8 @@ class X86MethodGenerator implements MethodGenerator {
         int pointerCount = 0;
 
         for (int i = 0; i < parameterTypes.length; ++i) {
-            Class javaParameterClass = parameterTypes[i].effectiveJavaType();
-            Class nativeParameterClass = nativeParameterTypes[i];
+            Class<?> javaParameterClass = parameterTypes[i].effectiveJavaType();
+            Class<?> nativeParameterClass = nativeParameterTypes[i];
 
             converted[i] = loadAndConvertParameter(builder, mv, localVariableAllocator, parameters[i], parameterTypes[i]);
 
@@ -179,7 +181,7 @@ class X86MethodGenerator implements MethodGenerator {
         mv.invokestatic(builder.getClassNamePath(), nativeMethodName, sig(nativeReturnType, nativeParameterTypes));
 
         // If boxing is neccessary, perform conversions
-        final Class unboxedResultType = unboxedReturnType(resultType.effectiveJavaType());
+        final Class<?> unboxedResultType = unboxedReturnType(resultType.effectiveJavaType());
         convertPrimitive(mv, nativeReturnType, unboxedResultType);
 
         if (pointerCount > 0) {
@@ -227,7 +229,7 @@ class X86MethodGenerator implements MethodGenerator {
             // Need to load all the converters onto the stack
             for (int i = 0; i < parameterTypes.length; i++) {
                 LocalVariable[] strategies = new LocalVariable[parameterTypes.length];
-                Class javaParameterType = parameterTypes[i].effectiveJavaType();
+                Class<?> javaParameterType = parameterTypes[i].effectiveJavaType();
                 if (hasPointerParameterStrategy(javaParameterType)) {
                     mv.aload(converted[i]);
                     emitParameterStrategyLookup(mv, javaParameterType);
@@ -270,7 +272,7 @@ class X86MethodGenerator implements MethodGenerator {
         mv.visitEnd();
     }
 
-    void attach(Class clazz) {
+    void attach(Class<?> clazz) {
         compiler.attach(clazz);
     }
 
@@ -314,7 +316,7 @@ class X86MethodGenerator implements MethodGenerator {
                 ;
     }
 
-    static Class getNativeClass(NativeType nativeType) {
+    static Class<?> getNativeClass(NativeType nativeType) {
         switch (nativeType) {
             case SCHAR:
             case UCHAR:

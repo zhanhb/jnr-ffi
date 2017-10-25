@@ -23,7 +23,7 @@ package jnr.ffi.mapper;
  */
 public final class FromNativeTypes {
 
-    public static FromNativeType create(FromNativeConverter converter) {
+    public static FromNativeType create(FromNativeConverter<?, ?> converter) {
         if (converter == null) {
             return null;
         }
@@ -33,13 +33,13 @@ public final class FromNativeTypes {
 
     @FromNativeType.Cacheable
     static class Cacheable extends AbstractFromNativeType {
-        public Cacheable(FromNativeConverter converter) {
+        public Cacheable(FromNativeConverter<?, ?> converter) {
             super(converter);
         }
     }
 
     static class UnCacheable extends AbstractFromNativeType {
-        public UnCacheable(FromNativeConverter converter) {
+        public UnCacheable(FromNativeConverter<?, ?> converter) {
             super(converter);
         }
     }

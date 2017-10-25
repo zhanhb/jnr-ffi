@@ -43,7 +43,7 @@ abstract class AbstractFastNumericMethodGenerator extends BaseMethodGenerator {
     public void generate(final AsmBuilder builder, final SkinnyMethodAdapter mv, LocalVariableAllocator localVariableAllocator, CallContext callContext, final ResultType resultType, final ParameterType[] parameterTypes,
                          boolean ignoreError) {
         // [ stack contains: Invoker, Function ]
-        final Class nativeIntType = getInvokerType();
+        final Class<?> nativeIntType = getInvokerType();
         final LocalVariable objCount = localVariableAllocator.allocate(int.class);
         final LocalVariable[] parameters = AsmUtil.getParameterVariables(parameterTypes);
         final LocalVariable[] converted = new LocalVariable[parameterTypes.length];
@@ -53,7 +53,7 @@ abstract class AbstractFastNumericMethodGenerator extends BaseMethodGenerator {
         for (int i = 0; i < parameterTypes.length; ++i) {
             converted[i] = loadAndConvertParameter(builder, mv, localVariableAllocator, parameters[i], parameterTypes[i]);
 
-            Class javaParameterType = parameterTypes[i].effectiveJavaType();
+            Class<?> javaParameterType = parameterTypes[i].effectiveJavaType();
             ToNativeOp op = ToNativeOp.get(parameterTypes[i]);
             if (op != null && op.isPrimitive()) {
                 op.emitPrimitive(mv, getInvokerType(), parameterTypes[i].getNativeType());
@@ -79,8 +79,8 @@ abstract class AbstractFastNumericMethodGenerator extends BaseMethodGenerator {
 
         if (pointerCount > 0) mv.label(convertResult);
 
-        Class javaReturnType = resultType.effectiveJavaType();
-        Class nativeReturnType = nativeIntType;
+        Class<?> javaReturnType = resultType.effectiveJavaType();
+        Class<?> nativeReturnType = nativeIntType;
 
         // Convert the result from long/int to the correct return type
         if (Float.class == javaReturnType || float.class == javaReturnType) {
@@ -96,7 +96,7 @@ abstract class AbstractFastNumericMethodGenerator extends BaseMethodGenerator {
         }
 
         // box and/or narrow/widen the return value if needed
-        final Class unboxedResultType = unboxedReturnType(javaReturnType);
+        final Class<?> unboxedResultType = unboxedReturnType(javaReturnType);
         convertPrimitive(mv, nativeReturnType, unboxedResultType, resultType.getNativeType());
         emitEpilogue(builder, mv, resultType, parameterTypes, parameters, converted, null);
 
@@ -125,7 +125,7 @@ abstract class AbstractFastNumericMethodGenerator extends BaseMethodGenerator {
             // Need to load all the converters onto the stack
             LocalVariable[] strategies = new LocalVariable[parameterTypes.length];
             for (int i = 0; i < parameterTypes.length; i++) {
-                Class javaParameterType = parameterTypes[i].effectiveJavaType();
+                Class<?> javaParameterType = parameterTypes[i].effectiveJavaType();
                 if (hasPointerParameterStrategy(javaParameterType)) {
                     mv.aload(converted[i]);
                     emitParameterStrategyLookup(mv, javaParameterType);
@@ -150,30 +150,30 @@ abstract class AbstractFastNumericMethodGenerator extends BaseMethodGenerator {
         }
     }
 
-    static final Map<Class<? extends ObjectParameterStrategy>, Method> STRATEGY_ADDRESS_METHODS;
-    static final Map<Class, Class<? extends ObjectParameterStrategy>> STRATEGY_PARAMETER_TYPES;
+    static final Map<Class<? extends ObjectParameterStrategy<?>>, Method> STRATEGY_ADDRESS_METHODS;
+    static final Map<Class<?>, Class<? extends ObjectParameterStrategy<?>>> STRATEGY_PARAMETER_TYPES;
     static {
-        Map<Class<? extends ObjectParameterStrategy>, Method> strategies = new HashMap<Class<? extends ObjectParameterStrategy>, Method>();
+        Map<Class<? extends ObjectParameterStrategy<?>>, Method> strategies = new HashMap<Class<? extends ObjectParameterStrategy<?>>, Method>();
         addStrategyParameterType(strategies, BufferParameterStrategy.class, Buffer.class);
         addStrategyParameterType(strategies, PointerParameterStrategy.class, Pointer.class);
         STRATEGY_ADDRESS_METHODS = Collections.unmodifiableMap(strategies);
 
-        Map<Class, Class<? extends ObjectParameterStrategy>> types = new LinkedHashMap<Class, Class<? extends ObjectParameterStrategy>>();
+        Map<Class<?>, Class<? extends ObjectParameterStrategy<?>>> types = new LinkedHashMap<Class<?>, Class<? extends ObjectParameterStrategy<?>>>();
         types.put(Pointer.class, PointerParameterStrategy.class);
-        for (Class c : new Class[] { ByteBuffer.class, CharBuffer.class, ShortBuffer.class, IntBuffer.class,
+        for (Class<?> c : new Class<?>[] { ByteBuffer.class, CharBuffer.class, ShortBuffer.class, IntBuffer.class,
                 LongBuffer.class, FloatBuffer.class, DoubleBuffer.class, Buffer.class }) {
             types.put(c, BufferParameterStrategy.class);
         }
 
-        for (Class c : new Class[] { byte[].class, short[].class, char[].class, int[].class, long[].class, float[].class, double[].class, boolean[].class }) {
-            types.put(c, ParameterStrategy.class);
+        for (Class<?> c : new Class<?>[] { byte[].class, short[].class, char[].class, int[].class, long[].class, float[].class, double[].class, boolean[].class }) {
+            types.put(c, (Class) ParameterStrategy.class);
         }
 
         STRATEGY_PARAMETER_TYPES = Collections.unmodifiableMap(types);
     }
 
-    private static void addStrategyParameterType(Map<Class<? extends ObjectParameterStrategy>, Method> map,
-                                                 Class<? extends ObjectParameterStrategy> strategyClass, Class parameterType) {
+    private static void addStrategyParameterType(Map<Class<? extends ObjectParameterStrategy<?>>, Method> map,
+                                                 Class<? extends ObjectParameterStrategy<?>> strategyClass, Class<?> parameterType) {
         try {
             Method addressMethod = strategyClass.getDeclaredMethod("address", parameterType);
             if (Modifier.isPublic(addressMethod.getModifiers()) && Modifier.isPublic(addressMethod.getDeclaringClass().getModifiers())) {
@@ -183,9 +183,8 @@ abstract class AbstractFastNumericMethodGenerator extends BaseMethodGenerator {
         } catch (NoSuchMethodException ignored) {}
     }
 
-    @SuppressWarnings("unchecked")
-    static boolean hasPointerParameterStrategy(Class javaType) {
-        for (Class c : STRATEGY_PARAMETER_TYPES.keySet()) {
+    static boolean hasPointerParameterStrategy(Class<?> javaType) {
+        for (Class<?> c : STRATEGY_PARAMETER_TYPES.keySet()) {
             if (c.isAssignableFrom(javaType)) {
                 return true;
             }
@@ -195,8 +194,8 @@ abstract class AbstractFastNumericMethodGenerator extends BaseMethodGenerator {
 
     }
 
-    static Class<? extends ObjectParameterStrategy> emitParameterStrategyLookup(SkinnyMethodAdapter mv, Class javaParameterType) {
-        for (Map.Entry<Class, Class<? extends ObjectParameterStrategy>> e : STRATEGY_PARAMETER_TYPES.entrySet()) {
+    static Class<? extends ObjectParameterStrategy<?>> emitParameterStrategyLookup(SkinnyMethodAdapter mv, Class<?> javaParameterType) {
+        for (Map.Entry<Class<?>, Class<? extends ObjectParameterStrategy<?>>> e : STRATEGY_PARAMETER_TYPES.entrySet()) {
             if (e.getKey().isAssignableFrom(javaParameterType)) {
                 mv.invokestatic(AsmRuntime.class, "pointerParameterStrategy", e.getValue(), e.getKey());
                 return e.getValue();
@@ -206,8 +205,8 @@ abstract class AbstractFastNumericMethodGenerator extends BaseMethodGenerator {
         throw new RuntimeException("no conversion strategy for: " + javaParameterType);
     }
 
-    static void emitParameterStrategyAddress(SkinnyMethodAdapter mv, Class nativeIntType,
-                                             Class<? extends ObjectParameterStrategy> strategyClass, LocalVariable strategy, LocalVariable parameter) {
+    static void emitParameterStrategyAddress(SkinnyMethodAdapter mv, Class<?> nativeIntType,
+                                             Class<? extends ObjectParameterStrategy<?>> strategyClass, LocalVariable strategy, LocalVariable parameter) {
         // Get the native address (will return zero for heap objects)
         mv.aload(strategy);
         mv.aload(parameter);
@@ -221,7 +220,7 @@ abstract class AbstractFastNumericMethodGenerator extends BaseMethodGenerator {
         narrow(mv, long.class, nativeIntType);
     }
 
-    static int emitDirectCheck(SkinnyMethodAdapter mv, Class javaParameterClass, Class nativeIntType,
+    static int emitDirectCheck(SkinnyMethodAdapter mv, Class<?> javaParameterClass, Class<?> nativeIntType,
                                LocalVariable parameter, LocalVariable objCount, int pointerCount) {
         if (pointerCount < 1) {
             mv.iconst_0();
@@ -288,6 +287,6 @@ abstract class AbstractFastNumericMethodGenerator extends BaseMethodGenerator {
     abstract String getInvokerMethodName(ResultType resultType, ParameterType[] parameterTypes,
                                          boolean ignoreErrno);
 
-    abstract String getInvokerSignature(int parameterCount, Class nativeIntType);
-    abstract Class getInvokerType();
+    abstract String getInvokerSignature(int parameterCount, Class<?> nativeIntType);
+    abstract Class<?> getInvokerType();
 }

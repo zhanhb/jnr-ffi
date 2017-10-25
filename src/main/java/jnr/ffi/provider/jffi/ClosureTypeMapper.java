@@ -28,7 +28,7 @@ import jnr.ffi.provider.converters.StringResultConverter;
 import jnr.ffi.provider.converters.StructByReferenceToNativeConverter;
 
 final class ClosureTypeMapper implements SignatureTypeMapper {
-    private FromNativeConverter getFromNativeConverter(SignatureType type, FromNativeContext context) {
+    private FromNativeConverter<?, ?> getFromNativeConverter(SignatureType type, FromNativeContext context) {
         if (Enum.class.isAssignableFrom(type.getDeclaredType())) {
             return EnumConverter.getInstance(type.getDeclaredType().asSubclass(Enum.class));
 
@@ -40,7 +40,7 @@ final class ClosureTypeMapper implements SignatureTypeMapper {
         }
     }
 
-    private ToNativeConverter getToNativeConverter(SignatureType type, ToNativeContext context) {
+    private ToNativeConverter<?, ?> getToNativeConverter(SignatureType type, ToNativeContext context) {
         if (Enum.class.isAssignableFrom(type.getDeclaredType())) {
             return EnumConverter.getInstance(type.getDeclaredType().asSubclass(Enum.class));
 

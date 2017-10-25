@@ -38,7 +38,7 @@ public class StructArrayParameterConverter implements ToNativeConverter<Struct[]
     protected final jnr.ffi.Runtime runtime;
     protected final int parameterFlags;
 
-    public static ToNativeConverter<Struct[], Pointer> getInstance(ToNativeContext toNativeContext, Class structClass) {
+    public static ToNativeConverter<Struct[], Pointer> getInstance(ToNativeContext toNativeContext, Class<?> structClass) {
         int parameterFlags = ParameterFlags.parse(toNativeContext.getAnnotations());
         return !ParameterFlags.isOut(parameterFlags)
                 ? new StructArrayParameterConverter(toNativeContext.getRuntime(), parameterFlags)

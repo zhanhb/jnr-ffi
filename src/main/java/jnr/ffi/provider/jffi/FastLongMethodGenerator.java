@@ -68,7 +68,7 @@ public class FastLongMethodGenerator extends AbstractFastNumericMethodGenerator 
     }
 
     @Override
-    String getInvokerSignature(int parameterCount, Class nativeIntType) {
+    String getInvokerSignature(int parameterCount, Class<?> nativeIntType) {
 
         if (parameterCount <= MAX_PARAMETERS && parameterCount <= signatures.length) {
             return signatures[parameterCount];
@@ -79,7 +79,7 @@ public class FastLongMethodGenerator extends AbstractFastNumericMethodGenerator 
     }
 
     @Override
-    Class getInvokerType() {
+    Class<?> getInvokerType() {
         return long.class;
     }
 

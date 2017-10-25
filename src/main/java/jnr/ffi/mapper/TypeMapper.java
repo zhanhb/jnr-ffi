@@ -22,12 +22,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 public interface TypeMapper {
-    public FromNativeConverter getFromNativeConverter(Class type);
-    public ToNativeConverter getToNativeConverter(Class type);
+    public FromNativeConverter<?, ?> getFromNativeConverter(Class<?> type);
+    public ToNativeConverter<?, ?> getToNativeConverter(Class<?> type);
 
     public static final class Builder {
-        private final Map<Class, ToNativeConverter<?,?>> toNativeConverterMap = new HashMap<Class, ToNativeConverter<?, ?>>();
-        private final Map<Class, FromNativeConverter<?,?>> fromNativeConverterMap = new HashMap<Class, FromNativeConverter<?,?>>();
+        private final Map<Class<?>, ToNativeConverter<?,?>> toNativeConverterMap = new HashMap<Class<?>, ToNativeConverter<?, ?>>();
+        private final Map<Class<?>, FromNativeConverter<?,?>> fromNativeConverterMap = new HashMap<Class<?>, FromNativeConverter<?,?>>();
 
         public <T> Builder map(Class<? extends T> javaType, ToNativeConverter<? extends T, ?> toNativeConverter) {
             toNativeConverterMap.put(javaType, toNativeConverter);

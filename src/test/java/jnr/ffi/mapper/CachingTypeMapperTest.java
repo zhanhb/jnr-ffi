@@ -127,15 +127,15 @@ public class CachingTypeMapperTest {
     }
 
     private static final class CountingTypeMapper implements SignatureTypeMapper {
-        private final Map<Class, Integer> fromConverterStats = new HashMap<Class, Integer>();
-        private final Map<Class, Integer> toConverterStats = new HashMap<Class, Integer>();
+        private final Map<Class<?>, Integer> fromConverterStats = new HashMap<Class<?>, Integer>();
+        private final Map<Class<?>, Integer> toConverterStats = new HashMap<Class<?>, Integer>();
         private final SignatureTypeMapper typeMapper;
 
         CountingTypeMapper(SignatureTypeMapper typeMapper) {
             this.typeMapper = typeMapper;
         }
 
-        private void incrementCount(Map<Class, Integer> stats, Class type) {
+        private void incrementCount(Map<Class<?>, Integer> stats, Class<?> type) {
             Integer count = stats.get(type);
             stats.put(type, count != null ? count + 1 : 1);
         }
@@ -152,12 +152,12 @@ public class CachingTypeMapperTest {
             return typeMapper.getToNativeType(type, context);
         }
 
-        public int getFromNativeCount(Class type) {
+        public int getFromNativeCount(Class<?> type) {
             Integer count = fromConverterStats.get(type);
             return count != null ? count : 0;
         }
 
-        public int getToNativeCount(Class type) {
+        public int getToNativeCount(Class<?> type) {
             Integer count = toConverterStats.get(type);
             return count != null ? count : 0;
         }

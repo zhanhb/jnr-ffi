@@ -69,17 +69,18 @@ final class FastIntMethodGenerator extends AbstractFastNumericMethodGenerator {
     }
 
     @Override
-    String getInvokerSignature(int parameterCount, Class nativeIntType) {
+    String getInvokerSignature(int parameterCount, Class<?> nativeIntType) {
         if (parameterCount <= MAX_FASTINT_PARAMETERS && parameterCount <= signatures.length) {
             return signatures[parameterCount];
         }
         throw new IllegalArgumentException("invalid fast-int parameter count: " + parameterCount);
     }
 
-    final Class getInvokerType() {
+    final Class<?> getInvokerType() {
         return int.class;
     }
 
+    @Override
     public boolean isSupported(ResultType resultType, ParameterType[] parameterTypes, CallingConvention callingConvention) {
         final int parameterCount = parameterTypes.length;
 
@@ -139,7 +140,7 @@ final class FastIntMethodGenerator extends AbstractFastNumericMethodGenerator {
         }
     }
 
-    private static boolean isSupportedPointerParameterType(Class javaParameterType) {
+    private static boolean isSupportedPointerParameterType(Class<?> javaParameterType) {
         return Pointer.class.isAssignableFrom(javaParameterType);
     }
 

@@ -97,12 +97,12 @@ public abstract class NativeClosureProxy {
         closureClassVisitor.visit(V1_6, ACC_PUBLIC | ACC_FINAL, closureProxyClassName, null, p(NativeClosureProxy.class),
                 new String[]{ });
 
-        Class[] nativeParameterClasses = new Class[parameterTypes.length];
+        Class<?>[] nativeParameterClasses = new Class<?>[parameterTypes.length];
         for (int i = 0; i < parameterTypes.length; i++) {
             nativeParameterClasses[i] = getNativeClass(parameterTypes[i].getNativeType());
         }
 
-        Class nativeResultClass = getNativeClass(resultType.getNativeType());
+        Class<?> nativeResultClass = getNativeClass(resultType.getNativeType());
 
         SkinnyMethodAdapter mv = new SkinnyMethodAdapter(closureClassVisitor, ACC_PUBLIC | ACC_FINAL, "invoke",
                 sig(nativeResultClass, nativeParameterClasses),
@@ -121,7 +121,7 @@ public abstract class NativeClosureProxy {
 
         for (int i = 0; i < parameterTypes.length; ++i) {
             FromNativeType parameterType = parameterTypes[i];
-            Class parameterClass = parameterType.effectiveJavaType();
+            Class<?> parameterClass = parameterType.effectiveJavaType();
 
             if (!isParameterTypeSupported(parameterClass)) {
                 throw new IllegalArgumentException("unsupported closure parameter type " + parameterTypes[i].getDeclaredType());
@@ -183,7 +183,7 @@ public abstract class NativeClosureProxy {
             closureInit.pushInt(i);
             closureInit.aaload();
             if (fields[i].klass.isPrimitive()) {
-                Class unboxedType = unboxedType(fields[i].klass);
+                Class<?> unboxedType = unboxedType(fields[i].klass);
                 closureInit.checkcast(unboxedType);
                 unboxNumber(closureInit, unboxedType, fields[i].klass);
             } else {
@@ -211,7 +211,7 @@ public abstract class NativeClosureProxy {
             if (cl == null) {
                 cl = ClassLoader.getSystemClassLoader();
             }
-            Class<? extends NativeClosureProxy> klass = builder.getClassLoader().defineClass(c(closureProxyClassName), closureImpBytes);
+            Class<? extends NativeClosureProxy> klass = builder.getClassLoader().defineClass(c(closureProxyClassName), closureImpBytes).asSubclass(NativeClosureProxy.class);
             Constructor<? extends NativeClosureProxy> constructor = null;
             try {
                 constructor = klass.getConstructor(NativeRuntime.class, Object[].class);
@@ -227,7 +227,7 @@ public abstract class NativeClosureProxy {
 
 
 
-    private static boolean isReturnTypeSupported(Class type) {
+    private static boolean isReturnTypeSupported(Class<?> type) {
         return type.isPrimitive()
                 || boolean.class == type || Boolean.class == type
                 || Byte.class == type
@@ -238,7 +238,7 @@ public abstract class NativeClosureProxy {
                 ;
     }
 
-    private static boolean isParameterTypeSupported(Class type) {
+    private static boolean isParameterTypeSupported(Class<?> type) {
         return type.isPrimitive()
                 || boolean.class == type || Boolean.class == type
                 || Byte.class == type
@@ -258,7 +258,7 @@ public abstract class NativeClosureProxy {
                 ;
     }
 
-    static Class getNativeClass(NativeType nativeType) {
+    static Class<?> getNativeClass(NativeType nativeType) {
         switch (nativeType) {
             case SCHAR:
             case UCHAR:

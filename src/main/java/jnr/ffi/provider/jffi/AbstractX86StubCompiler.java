@@ -101,7 +101,7 @@ abstract class AbstractX86StubCompiler extends StubCompiler {
     }
 
     @Override
-    void attach(Class clazz) {
+    void attach(Class<?> clazz) {
 
         if (stubs.isEmpty()) {
             return;

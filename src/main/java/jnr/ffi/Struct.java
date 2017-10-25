@@ -336,7 +336,7 @@ public abstract class Struct {
         arrayBegin();
         try {
             Class<?> arrayClass = array.getClass().getComponentType();
-            Constructor<?> ctor = arrayClass.getDeclaredConstructor(new Class[] { arrayClass.getEnclosingClass() });
+            Constructor<?> ctor = arrayClass.getDeclaredConstructor(new Class<?>[] { arrayClass.getEnclosingClass() });
             Object[] parameters = { Struct.this  };
             for (int i = 0; i < array.length; ++i) {
                 array[i] = (T) ctor.newInstance(parameters);
@@ -443,11 +443,12 @@ public abstract class Struct {
     protected <T extends Struct> T[] array(T[] array) {
         arrayBegin();
         try {
-            Class<?> type = array.getClass().getComponentType();
-            Constructor c = type.getConstructor(Runtime.class);
+            @SuppressWarnings("unchecked")
+            Class<? extends T> type = (Class<? extends T>) array.getClass().getComponentType();
+            Constructor<? extends T> c = type.getConstructor(Runtime.class);
 
             for (int i = 0; i < array.length; i++) {
-                array[i] = inner((T) c.newInstance(getRuntime()));
+                array[i] = inner(c.newInstance(getRuntime()));
             }
         } catch (Exception ex) {
             throw new RuntimeException(ex);

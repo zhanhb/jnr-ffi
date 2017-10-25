@@ -33,9 +33,10 @@ import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
  */
 abstract class BaseMethodGenerator implements MethodGenerator {
 
+    @Override
     public void generate(AsmBuilder builder, String functionName, Function function,
                          ResultType resultType, ParameterType[] parameterTypes, boolean ignoreError) {
-        Class[] javaParameterTypes = new Class[parameterTypes.length];
+        Class<?>[] javaParameterTypes = new Class<?>[parameterTypes.length];
         for (int i = 0; i < parameterTypes.length; i++) {
             javaParameterTypes[i] = parameterTypes[i].getDeclaredType();
         }
@@ -95,9 +96,10 @@ abstract class BaseMethodGenerator implements MethodGenerator {
     static void emitEpilogue(final AsmBuilder builder, final SkinnyMethodAdapter mv, final ResultType resultType,
                            final ParameterType[] parameterTypes,
                       final LocalVariable[] parameters, final LocalVariable[] converted, final Runnable sessionCleanup) {
-        final Class unboxedResultType = unboxedReturnType(resultType.effectiveJavaType());
+        final Class<?> unboxedResultType = unboxedReturnType(resultType.effectiveJavaType());
         if (isPostInvokeRequired(parameterTypes) || sessionCleanup != null) {
             tryfinally(mv, new Runnable() {
+                        @Override
                         public void run() {
                             emitFromNativeConversion(builder, mv, resultType, unboxedResultType);
                             // ensure there is always at least one instruction inside the try {} block
@@ -105,6 +107,7 @@ abstract class BaseMethodGenerator implements MethodGenerator {
                         }
                     },
                     new Runnable() {
+                        @Override
                         public void run() {
                             emitPostInvoke(builder, mv, parameterTypes, parameters, converted);
                             if (sessionCleanup != null) {

@@ -102,7 +102,8 @@ final class X86_32StubCompiler extends AbstractX86StubCompiler {
 
 
     @Override
-    void compile(Function function, String name, ResultType resultType, ParameterType[] parameterTypes, Class resultClass, Class[] parameterClasses, CallingConvention convention, boolean saveErrno) {
+    void compile(Function function, String name, ResultType resultType, ParameterType[] parameterTypes,
+                 Class<?> resultClass, Class<?>[] parameterClasses, CallingConvention convention, boolean saveErrno) {
 
         int psize = 0;
         for (ParameterType t : parameterTypes) {
@@ -314,7 +315,7 @@ final class X86_32StubCompiler extends AbstractX86StubCompiler {
         }
     }
 
-    static int parameterSize(Class t) {
+    static int parameterSize(Class<?> t) {
         if (byte.class == t || short.class == t || char.class == t | int.class == t || float.class == t) {
             return 4;
 

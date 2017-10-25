@@ -111,7 +111,7 @@ final class X86_64StubCompiler extends AbstractX86StubCompiler {
 
     @Override
     final void compile(Function function, String name, ResultType resultType, ParameterType[] parameterTypes,
-                       Class resultClass, Class[] parameterClasses, CallingConvention convention, boolean saveErrno) {
+                       Class<?> resultClass, Class<?>[] parameterClasses, CallingConvention convention, boolean saveErrno) {
 
         Assembler a = new Assembler(X86_64);
         int iCount = iCount(parameterTypes);

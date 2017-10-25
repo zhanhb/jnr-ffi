@@ -41,7 +41,7 @@ public class CodegenUtils {
      * @param n A class.
      * @return The class path name.
      */
-    public static String p(Class n) {
+    public static String p(Class<?> n) {
         return n.getName().replace('.','/');
     }
 
@@ -61,7 +61,7 @@ public class CodegenUtils {
      * @param n A class.
      * @return The class identifier.
      */
-    public static String ci(Class n) {
+    public static String ci(Class<?> n) {
         if (n.isArray()) {
             n = n.getComponentType();
             if (n.isPrimitive()) {
@@ -122,7 +122,7 @@ public class CodegenUtils {
      * @param n A class.
      * @return A human-readable representation.
      */
-    public static String human(Class n) {
+    public static String human(Class<?> n) {
         return n.getCanonicalName();
     }
     
@@ -133,15 +133,15 @@ public class CodegenUtils {
      * @param params The parameters.
      * @return A method signature.
      */
-    public static String sig(Class retval, Class... params) {
+    public static String sig(Class<?> retval, Class<?>... params) {
         return sigParams(params) + ci(retval);
     }
 
-    public static String sig(Class retval, String descriptor, Class... params) {
+    public static String sig(Class<?> retval, String descriptor, Class<?>... params) {
         return sigParams(descriptor, params) + ci(retval);
     }
 
-    public static String sigParams(Class... params) {
+    public static String sigParams(Class<?>... params) {
         StringBuilder signature = new StringBuilder("(");
         
         for (int i = 0; i < params.length; i++) {
@@ -153,7 +153,7 @@ public class CodegenUtils {
         return signature.toString();
     }
 
-    public static String sigParams(String descriptor, Class... params) {
+    public static String sigParams(String descriptor, Class<?>... params) {
         StringBuilder signature = new StringBuilder("(");
 
         signature.append(descriptor);
@@ -167,11 +167,11 @@ public class CodegenUtils {
         return signature.toString();
     }
     
-    public static String pretty(Class retval, Class... params) {
+    public static String pretty(Class<?> retval, Class<?>... params) {
         return prettyParams(params) + human(retval);
     }
     
-    public static String prettyParams(Class... params) {
+    public static String prettyParams(Class<?>... params) {
         StringBuilder signature = new StringBuilder("(");
         
         for (int i = 0; i < params.length; i++) {
@@ -184,18 +184,19 @@ public class CodegenUtils {
         return signature.toString();
     }
     
-    public static Class[] params(Class... classes) {
+    public static <T> Class<T>[] params(Class<T>... classes) {
         return classes;
     }
     
-    public static Class[] params(Class cls, int times) {
-        Class[] classes = new Class[times];
+    public static <T> Class<T>[] params(Class<T> cls, int times) {
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        Class<T>[] classes = new Class[times];
         Arrays.fill(classes, cls);
         return classes;
     }
     
-    public static Class[] params(Class cls1, Class clsFill, int times) {
-        Class[] classes = new Class[times + 1];
+    public static Class<?>[] params(Class<?> cls1, Class<?> clsFill, int times) {
+        Class<?>[] classes = new Class<?>[times + 1];
         Arrays.fill(classes, clsFill);
         classes[0] = cls1;
         return classes;

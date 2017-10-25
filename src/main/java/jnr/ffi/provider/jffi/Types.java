@@ -35,31 +35,30 @@ import java.util.*;
  *
  */
 class Types {
-    private static Reference<Map<Class, Map<Collection<Annotation>, Type>>> typeCacheReference;
+    private static Reference<Map<Class<?>, Map<Collection<Annotation>, Type>>> typeCacheReference;
 
-    static Type getType(jnr.ffi.Runtime runtime, Class javaType, Collection<Annotation> annotations) {
-        Map<Class, Map<Collection<Annotation>, Type>> cache = typeCacheReference != null ? typeCacheReference.get() : null;
+    static Type getType(jnr.ffi.Runtime runtime, Class<?> javaType, Collection<Annotation> annotations) {
+        Map<Class<?>, Map<Collection<Annotation>, Type>> cache = typeCacheReference != null ? typeCacheReference.get() : null;
         Map<Collection<Annotation>, Type> aliasCache = cache != null ? cache.get(javaType) : null;
         Type type = aliasCache != null ? aliasCache.get(annotations) : null;
         
         return type != null ? type : lookupAndCacheType(runtime, javaType, annotations);
     }
     
-    @SuppressWarnings("unchecked")
-    private static synchronized Type lookupAndCacheType(jnr.ffi.Runtime runtime, Class javaType, Collection<Annotation> annotations) {
-        Map<Class, Map<Collection<Annotation>, Type>> cache = typeCacheReference != null ? typeCacheReference.get() : null;
+    private static synchronized Type lookupAndCacheType(jnr.ffi.Runtime runtime, Class<?> javaType, Collection<Annotation> annotations) {
+        Map<Class<?>, Map<Collection<Annotation>, Type>> cache = typeCacheReference != null ? typeCacheReference.get() : null;
         Map<Collection<Annotation>, Type> aliasCache = cache != null ? cache.get(javaType) : null;
         Type type = aliasCache != null ? aliasCache.get(annotations) : null;
         if (type != null) {
             return type;
         }
-        cache = new HashMap<Class, Map<Collection<Annotation>, Type>>(cache != null ? cache : Collections.EMPTY_MAP);
+        cache = new HashMap<Class<?>, Map<Collection<Annotation>, Type>>(cache != null ? cache : Collections.<Class<?>, Map<Collection<Annotation>, Type>>emptyMap());
         
-        aliasCache = new HashMap<Collection<Annotation>, Type>(aliasCache != null ? aliasCache : Collections.EMPTY_MAP);
+        aliasCache = new HashMap<Collection<Annotation>, Type>(aliasCache != null ? aliasCache : Collections.<Collection<Annotation>, Type>emptyMap());
         aliasCache.put(annotations, type = lookupType(runtime, javaType, annotations));
         cache.put(javaType, Collections.unmodifiableMap(aliasCache));
 
-        typeCacheReference = new SoftReference<Map<Class, Map<Collection<Annotation>, Type>>>(Collections.unmodifiableMap(new IdentityHashMap<Class, Map<Collection<Annotation>, Type>>(cache)));
+        typeCacheReference = new SoftReference<Map<Class<?>, Map<Collection<Annotation>, Type>>>(Collections.unmodifiableMap(new IdentityHashMap<Class<?>, Map<Collection<Annotation>, Type>>(cache)));
         
         return type;
     }
@@ -75,7 +74,7 @@ class Types {
         return null;
     }
 
-    static Type lookupType(jnr.ffi.Runtime runtime, Class type, Collection<Annotation> annotations) {
+    static Type lookupType(jnr.ffi.Runtime runtime, Class<?> type, Collection<Annotation> annotations) {
         Type aliasedType = type.isArray() ? null : lookupAliasedType(runtime, annotations);
         if (aliasedType != null) {
             return aliasedType;

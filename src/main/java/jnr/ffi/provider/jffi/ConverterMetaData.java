@@ -34,12 +34,12 @@ import java.util.*;
  *
  */
 class ConverterMetaData {
-    private static volatile Reference<Map<Class, ConverterMetaData>> cacheReference;
+    private static volatile Reference<Map<Class<?>, ConverterMetaData>> cacheReference;
     final Collection<Annotation> classAnnotations;
     final Collection<Annotation> toNativeMethodAnnotations, fromNativeMethodAnnotations, nativeTypeMethodAnnotations;
     final Collection<Annotation> toNativeAnnotations, fromNativeAnnotations;
 
-    ConverterMetaData(Class converterClass, Class nativeType) {
+    ConverterMetaData(Class<?> converterClass, Class<?> nativeType) {
         classAnnotations = Annotations.sortedAnnotationCollection(converterClass.getAnnotations());
         nativeTypeMethodAnnotations = getConverterMethodAnnotations(converterClass, "nativeType");
         fromNativeMethodAnnotations = getConverterMethodAnnotations(converterClass, "fromNative", nativeType, FromNativeContext.class);
@@ -49,7 +49,7 @@ class ConverterMetaData {
     }
 
     
-    private static Collection<Annotation> getToNativeMethodAnnotations(Class converterClass, Class resultClass) {
+    private static Collection<Annotation> getToNativeMethodAnnotations(Class<?> converterClass, Class<?> resultClass) {
         try {
             final Method baseMethod = converterClass.getMethod("toNative", Object.class, ToNativeContext.class);
             for (Method m : converterClass.getMethods()) {
@@ -60,7 +60,7 @@ class ConverterMetaData {
                     continue;
                 }
 
-                Class[] methodParameterTypes = m.getParameterTypes();
+                Class<?>[] methodParameterTypes = m.getParameterTypes();
                 if (methodParameterTypes.length != 2 || !methodParameterTypes[1].isAssignableFrom(ToNativeContext.class)) {
                     continue;
                 }
@@ -76,8 +76,7 @@ class ConverterMetaData {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private static Collection<Annotation> getConverterMethodAnnotations(Class converterClass, String methodName, Class... parameterClasses) {
+    private static Collection<Annotation> getConverterMethodAnnotations(Class<?> converterClass, String methodName, Class<?>... parameterClasses) {
         try {
             return Annotations.sortedAnnotationCollection(converterClass.getMethod(methodName).getAnnotations());
         } catch (NoSuchMethodException ignored) {
@@ -87,8 +86,8 @@ class ConverterMetaData {
         }
     }
     
-    private static ConverterMetaData getMetaData(Class converterClass, Class nativeType) {
-        Map<Class, ConverterMetaData> cache = cacheReference != null ? cacheReference.get() : null;
+    private static ConverterMetaData getMetaData(Class<?> converterClass, Class<?> nativeType) {
+        Map<Class<?>, ConverterMetaData> cache = cacheReference != null ? cacheReference.get() : null;
         ConverterMetaData metaData;
         if (cache != null && (metaData = cache.get(converterClass)) != null) {
             return metaData;
@@ -97,27 +96,27 @@ class ConverterMetaData {
         return addMetaData(converterClass, nativeType);
     }
 
-    private static synchronized ConverterMetaData addMetaData(Class converterClass, Class nativeType) {
-        Map<Class, ConverterMetaData> cache = cacheReference != null ? cacheReference.get() : null;
+    private static synchronized ConverterMetaData addMetaData(Class<?> converterClass, Class<?> nativeType) {
+        Map<Class<?>, ConverterMetaData> cache = cacheReference != null ? cacheReference.get() : null;
         ConverterMetaData metaData;
         if (cache != null && (metaData = cache.get(converterClass)) != null) {
             return metaData;
         }
 
-        Map<Class, ConverterMetaData> m = new HashMap<Class, ConverterMetaData>(cache != null ? cache : Collections.EMPTY_MAP);
+        Map<Class<?>, ConverterMetaData> m = new HashMap<Class<?>, ConverterMetaData>(cache != null ? cache : Collections.<Class<?>, ConverterMetaData>emptyMap());
         m.put(converterClass, metaData = new ConverterMetaData(converterClass, nativeType));
-        cacheReference = new SoftReference<Map<Class, ConverterMetaData>>(cache = new IdentityHashMap<Class, ConverterMetaData>(m));
+        cacheReference = new SoftReference<Map<Class<?>, ConverterMetaData>>(cache = new IdentityHashMap<Class<?>, ConverterMetaData>(m));
 
         return metaData;
     }
 
-    static Collection<Annotation> getAnnotations(ToNativeConverter toNativeConverter) {
+    static Collection<Annotation> getAnnotations(ToNativeConverter<?, ?> toNativeConverter) {
         return toNativeConverter != null
                 ? getMetaData(toNativeConverter.getClass(), toNativeConverter.nativeType()).toNativeAnnotations
                 : Annotations.EMPTY_ANNOTATIONS;
     }
 
-    static Collection<Annotation> getAnnotations(FromNativeConverter fromNativeConverter) {
+    static Collection<Annotation> getAnnotations(FromNativeConverter<?, ?> fromNativeConverter) {
         return fromNativeConverter != null
                 ? getMetaData(fromNativeConverter.getClass(), fromNativeConverter.nativeType()).fromNativeAnnotations
                 : Annotations.EMPTY_ANNOTATIONS;

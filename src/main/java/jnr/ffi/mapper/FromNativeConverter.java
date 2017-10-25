@@ -43,6 +43,6 @@ public interface FromNativeConverter<J, N> {
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.METHOD)
     @interface FromNative {
-        Class nativeType();
+        Class<?> nativeType();
     }
 }

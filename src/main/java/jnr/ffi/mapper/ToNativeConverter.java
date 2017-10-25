@@ -49,6 +49,6 @@ public interface ToNativeConverter<J, N> {
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.METHOD)
     @interface ToNative {
-        Class nativeType();
+        Class<?> nativeType();
     }
 }

@@ -24,7 +24,7 @@ import jnr.ffi.provider.SigType;
 public final class NumberUtil {
     private NumberUtil() {}
     
-    static Class getBoxedClass(Class c) {
+    static Class<?> getBoxedClass(Class<?> c) {
         if (!c.isPrimitive()) {
             return c;
         }
@@ -61,7 +61,7 @@ public final class NumberUtil {
         }
     }
 
-    static Class getPrimitiveClass(Class c) {
+    static Class<?> getPrimitiveClass(Class<?> c) {
         if (Void.class == c) {
             return void.class;
 
@@ -96,12 +96,12 @@ public final class NumberUtil {
         }
     }
 
-    public static boolean isPrimitiveInt(Class c) {
+    public static boolean isPrimitiveInt(Class<?> c) {
         return byte.class == c || char.class == c || short.class == c || int.class == c || boolean.class == c;
     }
 
 
-    public static void widen(SkinnyMethodAdapter mv, Class from, Class to) {
+    public static void widen(SkinnyMethodAdapter mv, Class<?> from, Class<?> to) {
         if (long.class == to && long.class != from && isPrimitiveInt(from)) {
             mv.i2l();
 
@@ -112,7 +112,7 @@ public final class NumberUtil {
         }
     }
 
-    public static void widen(SkinnyMethodAdapter mv, Class from, Class to, NativeType nativeType) {
+    public static void widen(SkinnyMethodAdapter mv, Class<?> from, Class<?> to, NativeType nativeType) {
         if (isPrimitiveInt(from)) {
             if (nativeType == NativeType.UCHAR) {
                 mv.pushInt(0xff);
@@ -141,7 +141,7 @@ public final class NumberUtil {
     }
 
 
-    public static void narrow(SkinnyMethodAdapter mv, Class from, Class to) {
+    public static void narrow(SkinnyMethodAdapter mv, Class<?> from, Class<?> to) {
         if (!from.equals(to)) {
             if (byte.class == to || short.class == to || char.class == to || int.class == to || boolean.class == to) {
                 if (long.class == from) {
@@ -167,13 +167,14 @@ public final class NumberUtil {
     }
 
 
-    public static void convertPrimitive(SkinnyMethodAdapter mv, final Class from, final Class to) {
+    public static void convertPrimitive(SkinnyMethodAdapter mv, final Class<?> from, final Class<?> to) {
+        // class to is not a wrapper class of primitive
         narrow(mv, from, to);
         widen(mv, from, to);
     }
 
 
-    public static void convertPrimitive(SkinnyMethodAdapter mv, final Class from, final Class to, final NativeType nativeType) {
+    public static void convertPrimitive(SkinnyMethodAdapter mv, final Class<?> from, final Class<?> to, final NativeType nativeType) {
         if (boolean.class == to) {
             narrow(mv, from, to);
             return;

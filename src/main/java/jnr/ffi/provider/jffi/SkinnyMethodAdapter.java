@@ -237,7 +237,7 @@ public class SkinnyMethodAdapter extends MethodVisitor implements Opcodes {
         getMethodVisitor().visitMethodInsn(INVOKESTATIC, arg1, arg2, arg3);
     }
 
-    public void invokestatic(Class recv, String methodName, Class returnType, Class... parameterTypes) {
+    public void invokestatic(Class<?> recv, String methodName, Class<?> returnType, Class... parameterTypes) {
         getMethodVisitor().visitMethodInsn(INVOKESTATIC, p(recv), methodName, sig(returnType, parameterTypes));
     }
     
@@ -245,7 +245,7 @@ public class SkinnyMethodAdapter extends MethodVisitor implements Opcodes {
         getMethodVisitor().visitMethodInsn(INVOKESPECIAL, arg1, arg2, arg3);
     }
 
-    public void invokespecial(Class recv, String methodName, Class returnType, Class... parameterTypes) {
+    public void invokespecial(Class<?> recv, String methodName, Class<?> returnType, Class<?>... parameterTypes) {
         getMethodVisitor().visitMethodInsn(INVOKESPECIAL, p(recv), methodName, sig(returnType, parameterTypes));
     }
     
@@ -253,7 +253,7 @@ public class SkinnyMethodAdapter extends MethodVisitor implements Opcodes {
         getMethodVisitor().visitMethodInsn(INVOKEVIRTUAL, arg1, arg2, arg3);
     }
 
-    public void invokevirtual(Class recv, String methodName, Class returnType, Class... parameterTypes) {
+    public void invokevirtual(Class<?> recv, String methodName, Class<?> returnType, Class<?>... parameterTypes) {
         getMethodVisitor().visitMethodInsn(INVOKEVIRTUAL, p(recv), methodName, sig(returnType, parameterTypes));
     }
     
@@ -261,7 +261,7 @@ public class SkinnyMethodAdapter extends MethodVisitor implements Opcodes {
         getMethodVisitor().visitMethodInsn(INVOKEINTERFACE, arg1, arg2, arg3);
     }
 
-    public void invokeinterface(Class recv, String methodName, Class returnType, Class... parameterTypes) {
+    public void invokeinterface(Class<?> recv, String methodName, Class<?> returnType, Class<?>... parameterTypes) {
         getMethodVisitor().visitMethodInsn(INVOKEINTERFACE, p(recv), methodName, sig(returnType, parameterTypes));
     }
 
@@ -608,7 +608,7 @@ public class SkinnyMethodAdapter extends MethodVisitor implements Opcodes {
         getMethodVisitor().visitTypeInsn(CHECKCAST, arg0);
     }
 
-    public void checkcast(Class clazz) {
+    public void checkcast(Class<?> clazz) {
         getMethodVisitor().visitTypeInsn(CHECKCAST, p(clazz));
     }
     
@@ -618,7 +618,7 @@ public class SkinnyMethodAdapter extends MethodVisitor implements Opcodes {
     private void dump() {
         PrintWriter pw = new PrintWriter(System.out);
 
-        Class tmvClass = getMethodVisitor().getClass();
+        Class<?> tmvClass = getMethodVisitor().getClass();
         try {
             Method print = tmvClass.getDeclaredMethod("print", PrintWriter.class);
 

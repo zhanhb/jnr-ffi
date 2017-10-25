@@ -29,22 +29,22 @@ import java.util.Collection;
  *
  */
 abstract public class SigType implements SignatureType {
-    private final Class javaType, convertedType;
+    private final Class<?> javaType, convertedType;
     private final Collection<Annotation> annotations;
     private final NativeType nativeType;
 
-    public SigType(Class javaType, NativeType nativeType, Collection<Annotation> annotations, Class convertedType) {
+    public SigType(Class<?> javaType, NativeType nativeType, Collection<Annotation> annotations, Class<?> convertedType) {
         this.javaType = javaType;
         this.annotations = annotations;
         this.convertedType = convertedType;
         this.nativeType = nativeType;
     }
 
-    public final Class getDeclaredType() {
+    public final Class<?> getDeclaredType() {
         return javaType;
     }
 
-    public final Class effectiveJavaType() {
+    public final Class<?> effectiveJavaType() {
         return convertedType;
     }
 

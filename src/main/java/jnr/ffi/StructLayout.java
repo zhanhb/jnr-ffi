@@ -184,7 +184,7 @@ public class StructLayout extends Type {
         arrayBegin();
         try {
             Class<?> arrayClass = array.getClass().getComponentType();
-            Constructor<?> ctor = arrayClass.getDeclaredConstructor(new Class[] { arrayClass.getEnclosingClass() });
+            Constructor<?> ctor = arrayClass.getDeclaredConstructor(new Class<?>[] { arrayClass.getEnclosingClass() });
             Object[] parameters = { StructLayout.this  };
             for (int i = 0; i < array.length; ++i) {
                 array[i] = (T) ctor.newInstance(parameters);

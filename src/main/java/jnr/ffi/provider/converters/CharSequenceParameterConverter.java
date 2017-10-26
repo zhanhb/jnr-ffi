@@ -53,39 +53,8 @@ public class CharSequenceParameterConverter implements ToNativeConverter<CharSeq
     }
 
     public static ToNativeConverter<CharSequence, ByteBuffer> getInstance(ToNativeContext toNativeContext) {
-        Charset charset = Charset.defaultCharset();
-
-        if (toNativeContext instanceof MethodParameterContext) {
-            // See if the interface class has a global @Encoding declaration
-            Charset cs = getEncodingCharset(Arrays.asList(((MethodParameterContext) toNativeContext).getMethod().getDeclaringClass().getAnnotations()));
-            if (cs != null) {
-                charset = cs;
-            }
-
-            // Allow each method to override the default
-            cs = getEncodingCharset(Arrays.asList(((MethodParameterContext) toNativeContext).getMethod().getAnnotations()));
-            if (cs != null) {
-                charset = cs;
-            }
-        }
-
-        // Override on a per-parameter basis
-        Charset cs = getEncodingCharset(toNativeContext.getAnnotations());
-        if (cs != null) {
-            charset = cs;
-        }
-
+        Charset charset = StringUtil.getCharset(toNativeContext);
         return getInstance(charset, toNativeContext);
-    }
-
-    private static Charset getEncodingCharset(Collection<Annotation> annotations) {
-        for (Annotation a : annotations) {
-            if (a instanceof Encoding) {
-                return Charset.forName(((Encoding) a).value());
-            }
-        }
-
-        return null;
     }
 
     private CharSequenceParameterConverter(Charset charset) {
@@ -99,7 +68,7 @@ public class CharSequenceParameterConverter implements ToNativeConverter<CharSeq
         }
 
         CharsetEncoder encoder = getEncoder(charset, localEncoder);
-        ByteBuffer byteBuffer = ByteBuffer.wrap(new byte[(int) (string.length() * encoder.averageBytesPerChar()) + 4]);
+        ByteBuffer byteBuffer = ByteBuffer.allocate((int) (string.length() * encoder.averageBytesPerChar()) + 4);
         CharBuffer charBuffer = CharBuffer.wrap(string);
 
         encoder.reset();
@@ -128,7 +97,7 @@ public class CharSequenceParameterConverter implements ToNativeConverter<CharSeq
     }
 
     private static ByteBuffer grow(ByteBuffer oldBuffer) {
-        ByteBuffer buf = ByteBuffer.wrap(new byte[oldBuffer.capacity() * 2]);
+        ByteBuffer buf = ByteBuffer.allocate(oldBuffer.capacity() * 2);
         oldBuffer.flip();
         buf.put(oldBuffer);
         return buf;

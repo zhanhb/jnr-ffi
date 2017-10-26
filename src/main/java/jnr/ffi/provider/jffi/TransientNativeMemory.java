@@ -84,7 +84,7 @@ public class TransientNativeMemory extends DirectMemoryIO {
     }
 
     private static long align(long offset, long align) {
-        return (offset + align - 1L) & ~(align - 1L);
+        return (offset + align - 1L) & -align;
     }
 
 

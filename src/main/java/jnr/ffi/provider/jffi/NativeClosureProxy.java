@@ -25,6 +25,7 @@ import jnr.ffi.provider.ToNativeType;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Type;
 
 import java.io.PrintWriter;
 import java.lang.ref.Reference;
@@ -137,9 +138,9 @@ public abstract class NativeClosureProxy {
 
         // dispatch to java method
         if (callMethod.getDeclaringClass().isInterface()) {
-            mv.invokeinterface(p(callMethod.getDeclaringClass()), callMethod.getName(), sig(callMethod.getReturnType(), callMethod.getParameterTypes()));
+            mv.invokeinterface(p(callMethod.getDeclaringClass()), callMethod.getName(), Type.getMethodDescriptor(callMethod));
         } else {
-            mv.invokevirtual(p(callMethod.getDeclaringClass()), callMethod.getName(), sig(callMethod.getReturnType(), callMethod.getParameterTypes()));
+            mv.invokevirtual(p(callMethod.getDeclaringClass()), callMethod.getName(), Type.getMethodDescriptor(callMethod));
         }
 
         if (!isReturnTypeSupported(resultType.effectiveJavaType())) {
@@ -151,7 +152,7 @@ public abstract class NativeClosureProxy {
             if (Number.class.isAssignableFrom(resultType.effectiveJavaType())) {
                 AsmUtil.unboxNumber(mv, resultType.effectiveJavaType(), nativeResultClass, resultType.getNativeType());
 
-            } else if (Boolean.class.isAssignableFrom(resultType.effectiveJavaType())) {
+            } else if (Boolean.class == resultType.effectiveJavaType()) {
                 AsmUtil.unboxBoolean(mv, nativeResultClass);
 
             } else if (Pointer.class.isAssignableFrom(resultType.effectiveJavaType())) {
@@ -229,22 +230,13 @@ public abstract class NativeClosureProxy {
 
     private static boolean isReturnTypeSupported(Class type) {
         return type.isPrimitive()
-                || boolean.class == type || Boolean.class == type
-                || Byte.class == type
-                || Short.class == type || Integer.class == type
-                || Long.class == type || Float.class == type
-                || Double.class == type
-                || Pointer.class == type
-                ;
+                || (Primitives.isWrapperType(type) && Void.class != type && Character.class != type)
+                || Pointer.class == type;
     }
 
     private static boolean isParameterTypeSupported(Class type) {
         return type.isPrimitive()
-                || boolean.class == type || Boolean.class == type
-                || Byte.class == type
-                || Short.class == type || Integer.class == type
-                || Long.class == type || Float.class == type
-                || Double.class == type
+                || (Primitives.isWrapperType(type) && Void.class != type && Character.class != type)
                 || Pointer.class == type
                 /*
                 || CharSequence.class == type

@@ -167,10 +167,10 @@ abstract class AbstractX86StubCompiler extends StubCompiler {
     }
 
     static int align(int offset, int align) {
-        return (offset + align - 1) & ~(align - 1);
+        return (offset + align - 1) & -align;
     }
 
     static long align(long offset, long align) {
-        return (offset + align - 1) & ~(align - 1);
+        return (offset + align - 1) & -align;
     }
 }

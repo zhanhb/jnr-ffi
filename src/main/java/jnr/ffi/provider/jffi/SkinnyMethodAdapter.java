@@ -41,13 +41,13 @@ public class SkinnyMethodAdapter extends MethodVisitor implements Opcodes {
      * @param cv The class visitor instance.
      * @param flags The flags.
      * @param name The name.
-     * @param signature The signature.
-     * @param something Something.
+     * @param descriptor The descriptor.
+     * @param signature The signature. null if the method has no generic types
      * @param exceptions The array of exceptions.
      */
-    public SkinnyMethodAdapter(ClassVisitor cv, int flags, String name, String signature, String something, String[] exceptions) {
+    public SkinnyMethodAdapter(ClassVisitor cv, int flags, String name, String descriptor, String signature, String[] exceptions) {
         super(Opcodes.ASM4);
-        setMethodVisitor(cv.visitMethod(flags, name, signature, something, exceptions));
+        setMethodVisitor(cv.visitMethod(flags, name, descriptor, signature, exceptions));
     }
     
     public MethodVisitor getMethodVisitor() {

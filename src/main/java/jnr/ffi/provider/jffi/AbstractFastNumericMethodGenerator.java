@@ -271,13 +271,13 @@ abstract class AbstractFastNumericMethodGenerator extends BaseMethodGenerator {
 
     static String getObjectParameterMethodSignature(int parameterCount, int pointerCount) {
         StringBuilder sb = new StringBuilder();
-        sb.append('(').append(ci(CallContext.class)).append(ci(long.class));
+        sb.append('(').append(ci(CallContext.class)).append('J');
         for (int i = 0; i < parameterCount; i++) {
             sb.append('J');
         }
         sb.append('I'); // objCount
         for (int n = 0; n < pointerCount; n++) {
-            sb.append(ci(Object.class));
+            sb.append("Ljava/lang/Object;");
             sb.append(ci(ObjectParameterStrategy.class));
             sb.append(ci(ObjectParameterInfo.class));
         }

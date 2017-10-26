@@ -218,7 +218,7 @@ class X86MethodGenerator implements MethodGenerator {
             mv.getfield(builder.getClassNamePath(), builder.getCallContextFieldName(function), ci(CallContext.class));
 
             mv.aload(0);
-            mv.getfield(builder.getClassNamePath(), builder.getFunctionAddressFieldName(function), ci(long.class));
+            mv.getfield(builder.getClassNamePath(), builder.getFunctionAddressFieldName(function), "J");
 
             // Now reload the args back onto the parameter stack
             mv.lload(tmp);

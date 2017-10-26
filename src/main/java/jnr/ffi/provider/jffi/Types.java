@@ -77,31 +77,32 @@ class Types {
 
     static Type lookupType(jnr.ffi.Runtime runtime, Class type, Collection<Annotation> annotations) {
         Type aliasedType = type.isArray() ? null : lookupAliasedType(runtime, annotations);
+        Class unwrap = Primitives.unwrap(type);
         if (aliasedType != null) {
             return aliasedType;
 
-        } else if (Void.class.isAssignableFrom(type) || void.class == type) {
+        } else if (void.class == unwrap) {
             return runtime.findType(NativeType.VOID);
 
-        } else if (Boolean.class.isAssignableFrom(type) || boolean.class == type) {
+        } else if (boolean.class == unwrap) {
             return runtime.findType(NativeType.SINT);
 
-        } else if (Byte.class.isAssignableFrom(type) || byte.class == type) {
+        } else if (byte.class == unwrap) {
             return runtime.findType(NativeType.SCHAR);
 
-        } else if (Short.class.isAssignableFrom(type) || short.class == type) {
+        } else if (short.class == unwrap) {
             return runtime.findType(NativeType.SSHORT);
 
-        } else if (Integer.class.isAssignableFrom(type) || int.class == type) {
+        } else if (int.class == unwrap) {
             return runtime.findType(NativeType.SINT);
 
-        } else if (Long.class.isAssignableFrom(type) || long.class == type) {
+        } else if (long.class == unwrap) {
             return runtime.findType(NativeType.SLONG);
 
-        } else if (Float.class.isAssignableFrom(type) || float.class == type) {
+        } else if (float.class == unwrap) {
             return runtime.findType(NativeType.FLOAT);
 
-        } else if (Double.class.isAssignableFrom(type) || double.class == type) {
+        } else if (double.class == unwrap) {
             return runtime.findType(NativeType.DOUBLE);
 
         } else if (Pointer.class.isAssignableFrom(type)) {

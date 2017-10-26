@@ -51,12 +51,8 @@ final class InvokerUtil {
             return com.kenai.jffi.CallingConvention.DEFAULT.equals(convention) ? jnr.ffi.CallingConvention.DEFAULT : jnr.ffi.CallingConvention.STDCALL;
         }
         
-        if (convention instanceof jnr.ffi.CallingConvention) switch ((jnr.ffi.CallingConvention) convention) {
-            case DEFAULT:
-                return jnr.ffi.CallingConvention.DEFAULT;
-            case STDCALL:
-                return jnr.ffi.CallingConvention.STDCALL;
-
+        if (convention instanceof jnr.ffi.CallingConvention) {
+            return (jnr.ffi.CallingConvention) convention;
         } else if (convention != null) {
             throw new IllegalArgumentException("unknown calling convention: " + convention);
         }

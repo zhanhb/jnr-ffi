@@ -97,7 +97,7 @@ public class StructLayout extends Type {
     }
 
     private static int align(int offset, int alignment) {
-        return (offset + alignment - 1) & ~(alignment - 1);
+        return (offset + alignment - 1) & -alignment;
     }
 
 
@@ -585,8 +585,7 @@ public class StructLayout extends Type {
          * @return a byte.
          */
         public final short get(jnr.ffi.Pointer ptr) {
-            short value = ptr.getByte(offset());
-            return value < 0 ? (short) ((value & 0x7F) + 0x80) : value;
+            return (short) (ptr.getByte(offset()) & 0xff);
         }
 
         /**
@@ -716,8 +715,7 @@ public class StructLayout extends Type {
          * @return a short.
          */
         public final int get(jnr.ffi.Pointer ptr) {
-            int value = ptr.getShort(offset());
-            return value < 0 ? (int)((value & 0x7FFF) + 0x8000) : value;
+            return ptr.getShort(offset()) & 0xffff;
         }
 
         /**
@@ -829,8 +827,7 @@ public class StructLayout extends Type {
          * @return a long.
          */
         public final long get(jnr.ffi.Pointer ptr) {
-            long value = ptr.getInt(offset());
-            return value < 0 ? (long)((value & 0x7FFFFFFFL) + 0x80000000L) : value;
+            return ptr.getInt(offset()) & 0xffffffffL;
         }
 
         /**

@@ -155,7 +155,7 @@ final class DefaultInvokerFactory {
         if (Void.class.isAssignableFrom(returnType) || void.class == returnType) {
             return VoidInvoker.INSTANCE;
         
-        } else if (Boolean.class.isAssignableFrom(returnType) || boolean.class == returnType) {
+        } else if (Boolean.class == returnType || boolean.class == returnType) {
             return BooleanInvoker.INSTANCE;
 
         } else if (Number.class.isAssignableFrom(returnType) || returnType.isPrimitive()) {
@@ -238,7 +238,7 @@ final class DefaultInvokerFactory {
                     throw new IllegalArgumentException("Unsupported parameter type: " + type);
             }
 
-        } else if (Boolean.class.isAssignableFrom(type) || boolean.class == type) {
+        } else if (Boolean.class == type || boolean.class == type) {
             return BooleanMarshaller.INSTANCE;
         
         } else if (Pointer.class.isAssignableFrom(type)) {
@@ -761,8 +761,7 @@ final class DefaultInvokerFactory {
         static final NumberDataConverter INSTANCE = new Unsigned8Converter();
         @Override
         public Number fromNative(Number nativeValue, FromNativeContext context) {
-            int value = nativeValue.byteValue();
-            return value < 0 ? ((value & 0x7f) + 0x80) : value;
+            return nativeValue.byteValue() & 0xff;
         }
 
         @Override
@@ -788,8 +787,7 @@ final class DefaultInvokerFactory {
         static final NumberDataConverter INSTANCE = new Unsigned16Converter();
         @Override
         public Number fromNative(Number nativeValue, FromNativeContext context) {
-            int value = nativeValue.shortValue();
-            return value < 0 ? ((value & 0x7fff) + 0x8000) : value;
+            return nativeValue.shortValue() & 0xffff;
         }
 
         @Override
@@ -815,8 +813,7 @@ final class DefaultInvokerFactory {
         static final NumberDataConverter INSTANCE = new Unsigned32Converter();
         @Override
         public Number fromNative(Number nativeValue, FromNativeContext context) {
-            long value = nativeValue.intValue();
-            return value < 0 ? ((value & 0x7fffffffL) + 0x80000000L) : value;
+            return nativeValue.intValue() & 0xffffffffL;
         }
 
         @Override
@@ -887,25 +884,26 @@ final class DefaultInvokerFactory {
     }
 
     static ResultConverter<? extends Number, Number> getNumberResultConverter(jnr.ffi.provider.FromNativeType fromNativeType) {
-        if (Byte.class == fromNativeType.effectiveJavaType() || byte.class == fromNativeType.effectiveJavaType()) {
+        Class<?> unwrap = Primitives.unwrap(fromNativeType.effectiveJavaType());
+        if (byte.class == unwrap) {
             return ByteResultConverter.INSTANCE;
 
-        } else if (Short.class == fromNativeType.effectiveJavaType() || short.class == fromNativeType.effectiveJavaType()) {
+        } else if (short.class == unwrap) {
             return ShortResultConverter.INSTANCE;
 
-        } else if (Integer.class == fromNativeType.effectiveJavaType() || int.class == fromNativeType.effectiveJavaType()) {
+        } else if (int.class == unwrap) {
             return IntegerResultConverter.INSTANCE;
 
-        } else if (Long.class == fromNativeType.effectiveJavaType() || long.class == fromNativeType.effectiveJavaType()) {
+        } else if (long.class == unwrap) {
             return LongResultConverter.INSTANCE;
 
-        } else if (Float.class == fromNativeType.effectiveJavaType() || float.class == fromNativeType.effectiveJavaType()) {
+        } else if (float.class == unwrap) {
             return FloatResultConverter.INSTANCE;
 
-        } else if (Double.class == fromNativeType.effectiveJavaType() || double.class == fromNativeType.effectiveJavaType()) {
+        } else if (double.class == unwrap) {
             return DoubleResultConverter.INSTANCE;
 
-        } else if (Address.class == fromNativeType.effectiveJavaType()) {
+        } else if (Address.class == unwrap) {
             return AddressResultConverter.INSTANCE;
 
         } else {

@@ -43,7 +43,7 @@ class ConverterMetaData {
         classAnnotations = Annotations.sortedAnnotationCollection(converterClass.getAnnotations());
         nativeTypeMethodAnnotations = getConverterMethodAnnotations(converterClass, "nativeType");
         fromNativeMethodAnnotations = getConverterMethodAnnotations(converterClass, "fromNative", nativeType, FromNativeContext.class);
-        toNativeMethodAnnotations = getConverterMethodAnnotations(converterClass, "toNative", nativeType, ToNativeContext.class);;
+        toNativeMethodAnnotations = getConverterMethodAnnotations(converterClass, "toNative", nativeType, ToNativeContext.class);
         toNativeAnnotations = Annotations.mergeAnnotations(classAnnotations, toNativeMethodAnnotations, nativeTypeMethodAnnotations);
         fromNativeAnnotations = Annotations.mergeAnnotations(classAnnotations, fromNativeMethodAnnotations, nativeTypeMethodAnnotations);
     }

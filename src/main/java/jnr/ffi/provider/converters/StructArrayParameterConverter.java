@@ -89,8 +89,8 @@ public class StructArrayParameterConverter implements ToNativeConverter<Struct[]
                     int off = 0;
                     for (int i = 0; i < structs.length; i++) {
                         structs[i] = constructor.newInstance(runtime);
-                        int structSize = align(Struct.size(structs[i]), Struct.alignment(structs[i]));
-                        structs[i].useMemory(primitive.slice(off = align(off, Struct.alignment(structs[i])), structSize));
+                        int structSize = Struct.size(structs[i]);
+                        structs[i].useMemory(primitive.slice(off, structSize));
                         off += structSize;
                     }
                 } catch (InstantiationException ie) {
@@ -102,10 +102,6 @@ public class StructArrayParameterConverter implements ToNativeConverter<Struct[]
                 }
             }
         }
-    }
-
-    private static int align(int offset, int align) {
-        return (offset + align - 1) & ~(align - 1);
     }
 
 }

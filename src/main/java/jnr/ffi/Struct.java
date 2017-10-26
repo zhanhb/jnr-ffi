@@ -78,7 +78,7 @@ public abstract class Struct {
         }
 
         final int size() {
-            return this.alignment.intValue() > 0 ? size + ((-this.size) & (this.minAlign - 1)) : size;
+            return align(size, minAlign);
         }
 
         final int getMinimumAlignment() {
@@ -190,7 +190,7 @@ public abstract class Struct {
             }
 
             if (array.length > 0) {
-                final int structSize = align(Struct.size(array[0]), Struct.alignment(array[0]));
+                final int structSize = Struct.size(array[0]);
 
                 jnr.ffi.Pointer memory = runtime.getMemoryManager().allocateDirect(structSize * length);
                 for (int i = 0; i < array.length; ++i) {

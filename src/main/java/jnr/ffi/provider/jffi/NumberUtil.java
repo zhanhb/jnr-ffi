@@ -144,24 +144,25 @@ public final class NumberUtil {
 
     public static void narrow(SkinnyMethodAdapter mv, Class from, Class to) {
         if (!from.equals(to)) {
-            if (byte.class == to || short.class == to || char.class == to || int.class == to || boolean.class == to) {
-                if (long.class == from) {
-                    // long x = 0x100000000LL;
-                    // boolean b = x != 0;
-                    // IMO, return false only if the long is  zero.
-                    if (boolean.class == to) {
+            if (byte.class == to || short.class == to || char.class == to || int.class == to || boolean.class == to) {{
+                // long x = 0x100000000LL;
+                // boolean b = x != 0;
+                // IMO, return false only if the long is  zero.
+                if (boolean.class == to) {
+                    if (long.class == from) {
                         mv.lconst_0();
                         mv.lcmp();
-                        Label a = new Label();
-                        mv.ifeq(a);
-                        mv.iconst_1();
-                        Label b = new Label();
-                        mv.go_to(b);
-                        mv.label(a);
-                        mv.iconst_0();
-                        mv.label(b);
-                        return;
                     }
+                    Label l0 = new Label();
+                    mv.ifeq(l0);
+                    mv.iconst_1();
+                    mv.ireturn();
+                    mv.visitLabel(l0);
+                    mv.iconst_0();
+                    mv.ireturn();
+                    return;
+                }
+                if (long.class == from) {
                     mv.l2i();
                 }
 
@@ -173,17 +174,6 @@ public final class NumberUtil {
 
                 } else if (char.class == to) {
                     mv.i2c();
-
-                } else if (boolean.class == to) {
-                    // Ensure only 0x0 and 0x1 values are used for boolean
-                    Label l0 = new Label();
-                    mv.ifeq(l0);
-                    mv.iconst_1();
-                    Label l1 = new Label();
-                    mv.go_to(l1);
-                    mv.label(l0);
-                    mv.iconst_0();
-                    mv.label(l1);
                 }
             }
         }
@@ -244,6 +234,7 @@ public final class NumberUtil {
                         mv.land();
                     }
                 } else {
+                    narrow(mv, from, to);
                     widen(mv, from, to);
                 }
                 break;

@@ -30,6 +30,7 @@ import jnr.ffi.provider.*;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Type;
 
 import java.io.OutputStream;
 import java.io.PrintWriter;
@@ -42,6 +43,7 @@ import java.util.Collection;
 import static jnr.ffi.provider.jffi.CodegenUtils.*;
 import static jnr.ffi.provider.jffi.CodegenUtils.p;
 import static jnr.ffi.provider.jffi.NumberUtil.*;
+import static org.objectweb.asm.Opcodes.*;
 
 final class AsmUtil {
     private AsmUtil() {}
@@ -97,73 +99,29 @@ final class AsmUtil {
     }
 
     public static Class<?> unboxedType(Class<?> boxedType) {
-        if (boxedType == Byte.class) {
-            return byte.class;
-
-        } else if (boxedType == Short.class) {
-            return short.class;
-
-        } else if (boxedType == Integer.class) {
-            return int.class;
-
-        } else if (boxedType == Long.class) {
-            return long.class;
-
-        } else if (boxedType == Float.class) {
-            return float.class;
-
-        } else if (boxedType == Double.class) {
-            return double.class;
-
-        } else if (boxedType == Boolean.class) {
-            return boolean.class;
-
-        } else if (Pointer.class.isAssignableFrom(boxedType)) {
+        Class<?> unwrap = Primitives.unwrap(boxedType);
+        if (unwrap.isPrimitive()) {
+            if (unwrap == char.class || unwrap == void.class) {
+                return boxedType;
+            }
+        } else if (Pointer.class.isAssignableFrom(unwrap)) {
             return Platform.getPlatform().addressSize() == 32 ? int.class : long.class;
-
-        } else if (Address.class == boxedType) {
+        } else if (Address.class == unwrap) {
             return Platform.getPlatform().addressSize() == 32 ? int.class : long.class;
-
-        } else {
-            return boxedType;
         }
+        return unwrap;
     }
 
-    public static Class<?> boxedType(Class<?> type) {
-        if (type == byte.class) {
-            return Byte.class;
-        } else if (type == short.class) {
-            return Short.class;
-        } else if (type == int.class) {
-            return Integer.class;
-        } else if (type == long.class) {
-            return Long.class;
-        } else if (type == float.class) {
-            return Float.class;
-        } else if (type == double.class) {
-            return Double.class;
-        } else if (type == boolean.class) {
-            return Boolean.class;
-        } else {
+    public static <T> Class<T> boxedType(Class<T> type) {
+        if (type == char.class || type == void.class) {
             return type;
         }
+        return Primitives.wrap(type);
     }
 
     
     static void emitReturnOp(SkinnyMethodAdapter mv, Class<?> returnType) {
-        if (!returnType.isPrimitive()) {
-            mv.areturn();
-        } else if (long.class == returnType) {
-            mv.lreturn();
-        } else if (float.class == returnType) {
-            mv.freturn();
-        } else if (double.class == returnType) {
-            mv.dreturn();
-        } else if (void.class == returnType) {
-            mv.voidreturn();
-        } else {
-            mv.ireturn();
-        }
+        mv.visitInsn(Type.getType(returnType).getOpcode(IRETURN));
     }
 
     /**
@@ -284,7 +242,7 @@ final class AsmUtil {
             }
 
 
-        } else if (Boolean.class.isAssignableFrom(boxedType)) {
+        } else if (Boolean.class == boxedType) {
             unboxBoolean(mv, unboxedType);
 
         } else {
@@ -296,30 +254,16 @@ final class AsmUtil {
     static void unboxNumber(final SkinnyMethodAdapter mv, final Class<?> boxedType, final Class<?> nativeType) {
 
         if (Number.class.isAssignableFrom(boxedType)) {
-
-            if (byte.class == nativeType) {
-                mv.invokevirtual(p(boxedType), "byteValue", "()B");
-
-            } else if (short.class == nativeType) {
-                mv.invokevirtual(p(boxedType), "shortValue", "()S");
-
-            } else if (int.class == nativeType) {
-                mv.invokevirtual(p(boxedType), "intValue", "()I");
-
-            } else if (long.class == nativeType) {
-                mv.invokevirtual(p(boxedType), "longValue", "()J");
-
-            } else if (float.class == nativeType) {
-                mv.invokevirtual(p(boxedType), "floatValue", "()F");
-
-            } else if (double.class == nativeType) {
-                mv.invokevirtual(p(boxedType), "doubleValue", "()D");
-
+            String description = Type.getMethodDescriptor(Type.getType(nativeType));
+            String p = p(boxedType);
+            if (byte.class == nativeType || short.class == nativeType || int.class == nativeType
+                    || long.class == nativeType || float.class == nativeType || double.class == nativeType) {
+                mv.invokevirtual(p, nativeType + "Value", description);
             } else {
                 throw new IllegalArgumentException("unsupported Number subclass: " + boxedType);
             }
 
-        } else if (Boolean.class.isAssignableFrom(boxedType)) {
+        } else if (Boolean.class == boxedType) {
             unboxBoolean(mv, nativeType);
 
         } else {
@@ -330,7 +274,7 @@ final class AsmUtil {
     static void boxValue(AsmBuilder builder, SkinnyMethodAdapter mv, Class<?> boxedType, Class<?> unboxedType) {
         if (boxedType == unboxedType || boxedType.isPrimitive()) {
 
-        } else if (Boolean.class.isAssignableFrom(boxedType)) {
+        } else if (Boolean.class == boxedType) {
             narrow(mv, unboxedType, boolean.class);
             mv.invokestatic(Boolean.class, "valueOf", Boolean.class, boolean.class);
 
@@ -385,41 +329,12 @@ final class AsmUtil {
     }
 
     static void load(SkinnyMethodAdapter mv, Class<?> parameterType, LocalVariable parameter) {
-        if (!parameterType.isPrimitive()) {
-            mv.aload(parameter);
-
-        } else if (long.class == parameterType) {
-            mv.lload(parameter);
-
-        } else if (float.class == parameterType) {
-            mv.fload(parameter);
-
-        } else if (double.class == parameterType) {
-            mv.dload(parameter);
-
-        } else {
-            mv.iload(parameter);
-        }
-
+        mv.visitVarInsn(Type.getType(parameterType).getOpcode(ILOAD), parameter.idx);
     }
 
 
     static void store(SkinnyMethodAdapter mv, Class<?> type, LocalVariable var) {
-        if (!type.isPrimitive()) {
-            mv.astore(var);
-
-        } else if (long.class == type) {
-            mv.lstore(var);
-
-        } else if (double.class == type) {
-            mv.dstore(var);
-
-        } else if (float.class == type) {
-            mv.fstore(var);
-
-        } else {
-            mv.istore(var);
-        }
+        mv.visitVarInsn(Type.getType(type).getOpcode(ISTORE), var.idx);
     }
 
     static void emitReturn(AsmBuilder builder, SkinnyMethodAdapter mv, Class<?> returnType, Class<?> nativeIntType) {

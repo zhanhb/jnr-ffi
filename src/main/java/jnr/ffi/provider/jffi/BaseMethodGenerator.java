@@ -54,7 +54,7 @@ abstract class BaseMethodGenerator implements MethodGenerator {
         mv.getfield(builder.getClassNamePath(), builder.getCallContextFieldName(function.getCallContext()), ci(CallContext.class));
 
         mv.aload(0);
-        mv.getfield(builder.getClassNamePath(), builder.getFunctionAddressFieldName(function), ci(long.class));
+        mv.getfield(builder.getClassNamePath(), builder.getFunctionAddressFieldName(function), "J");
 
         LocalVariableAllocator localVariableAllocator = new LocalVariableAllocator(parameterTypes);
 

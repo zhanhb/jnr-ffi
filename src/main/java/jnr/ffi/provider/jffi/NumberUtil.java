@@ -24,76 +24,16 @@ import jnr.ffi.provider.SigType;
 public final class NumberUtil {
     private NumberUtil() {}
     
-    static Class<?> getBoxedClass(Class<?> c) {
-        if (!c.isPrimitive()) {
-            return c;
-        }
-
-        if (void.class == c) {
-            return Void.class;
-
-        } else if (byte.class == c) {
-            return Byte.class;
-        
-        } else if (char.class == c) {
-            return Character.class;
-
-        } else if (short.class == c) {
-            return Short.class;
-
-        } else if (int.class == c) {
-            return Integer.class;
-
-        } else if (long.class == c) {
-            return Long.class;
-
-        } else if (float.class == c) {
-            return Float.class;
-
-        } else if (double.class == c) {
-            return Double.class;
-
-        } else if (boolean.class == c) {
-            return Boolean.class;
-
-        } else {
-            throw new IllegalArgumentException("unknown primitive class");
-        }
+    static <T> Class<T> getBoxedClass(Class<T> c) {
+        return Primitives.wrap(c);
     }
 
-    static Class<?> getPrimitiveClass(Class<?> c) {
-        if (Void.class == c) {
-            return void.class;
-
-        } else if (Boolean.class == c) {
-            return boolean.class;
-
-        } else if (Byte.class == c) {
-            return byte.class;
-
-        } else if (Character.class == c) {
-            return char.class;
-
-        } else if (Short.class == c) {
-            return short.class;
-
-        } else if (Integer.class == c) {
-            return int.class;
-
-        } else if (Long.class == c) {
-            return long.class;
-
-        } else if (Float.class == c) {
-            return float.class;
-
-        } else if (Double.class == c) {
-            return double.class;
-        
-        } else if (c.isPrimitive()) {
-            return c;
-        } else {
+    static <T> Class<T> getPrimitiveClass(Class<T> c) {
+        Class<T> unwrap = Primitives.unwrap(c);
+        if (!unwrap.isPrimitive()) {
             throw new IllegalArgumentException("unsupported number class");
         }
+        return unwrap;
     }
 
     public static boolean isPrimitiveInt(Class<?> c) {

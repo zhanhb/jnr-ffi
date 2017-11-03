@@ -105,7 +105,7 @@ public class StructArrayParameterConverter implements ToNativeConverter<Struct[]
     }
 
     private static int align(int offset, int align) {
-        return (offset + align - 1) & ~(align - 1);
+        return (offset + align - 1) & -align;
     }
 
 }

@@ -32,7 +32,7 @@ class DirectMemoryIO extends AbstractMemoryIO {
     }
 
     DirectMemoryIO(Runtime runtime, int address) {
-        super(runtime, (long) address & 0xffffffffL, true);
+        super(runtime, address & 0xffffffffL, true);
     }
 
     public long size() {

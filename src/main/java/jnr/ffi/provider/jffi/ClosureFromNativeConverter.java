@@ -179,7 +179,7 @@ abstract public class ClosureFromNativeConverter implements FromNativeConverter<
         mv.getfield(builder.getClassNamePath(), builder.getCallContextFieldName(callContext), ci(CallContext.class));
 
         mv.aload(0);
-        mv.getfield(p(AbstractClosurePointer.class), "functionAddress", ci(long.class));
+        mv.getfield(p(AbstractClosurePointer.class), "functionAddress", "J");
 
         final BaseMethodGenerator[] generators = {
                 new FastIntMethodGenerator(),

@@ -47,7 +47,7 @@ public class FastLongMethodGenerator extends AbstractFastNumericMethodGenerator 
         signatures = new String[MAX_PARAMETERS + 1];
         for (int i = 0; i <= MAX_PARAMETERS; i++) {
             StringBuilder sb = new StringBuilder();
-            sb.append('(').append(ci(CallContext.class)).append(ci(long.class));
+            sb.append('(').append(ci(CallContext.class)).append('J');
             for (int n = 0; n < i; n++) {
                 sb.append('J');
             }

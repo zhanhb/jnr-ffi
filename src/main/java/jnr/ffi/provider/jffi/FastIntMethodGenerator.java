@@ -48,7 +48,7 @@ final class FastIntMethodGenerator extends AbstractFastNumericMethodGenerator {
         signatures = new String[MAX_FASTINT_PARAMETERS + 1];
         for (int i = 0; i <= MAX_FASTINT_PARAMETERS; i++) {
             StringBuilder sb = new StringBuilder();
-            sb.append('(').append(ci(CallContext.class)).append(ci(long.class));
+            sb.append('(').append(ci(CallContext.class)).append('J');
             for (int n = 0; n < i; n++) {
                 sb.append('I');
             }

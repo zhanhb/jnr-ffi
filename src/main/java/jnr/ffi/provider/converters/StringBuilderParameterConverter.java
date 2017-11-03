@@ -63,7 +63,7 @@ public class StringBuilderParameterConverter implements ToNativeConverter<String
 
         } else {
             CharsetEncoder encoder = getEncoder(charset, localEncoder);
-            ByteBuffer byteBuffer = ByteBuffer.wrap(new byte[parameter.capacity() * (int) Math.ceil(encoder.maxBytesPerChar()) + 4]);
+            ByteBuffer byteBuffer = ByteBuffer.allocate(parameter.capacity() * (int) Math.ceil(encoder.maxBytesPerChar()) + 4);
 
             if (ParameterFlags.isIn(parameterFlags)) {
                 byteBuffer.mark();

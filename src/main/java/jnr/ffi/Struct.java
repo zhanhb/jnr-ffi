@@ -177,7 +177,7 @@ public abstract class Struct {
     }
 
     private static int align(int offset, int align) {
-        return (offset + align - 1) & ~(align - 1);
+        return (offset + align - 1) & -align;
     }
 
     @SuppressWarnings("unchecked")
@@ -1129,8 +1129,7 @@ public abstract class Struct {
          * @return a byte.
          */
         public final short get() {
-            short value = getMemory().getByte(offset());
-            return value < 0 ? (short) ((value & 0x7F) + 0x80) : value;
+            return (short) (getMemory().getByte(offset()) & 0xff);
         }
 
         /**
@@ -1256,8 +1255,7 @@ public abstract class Struct {
          * @return a short.
          */
         public final int get() {
-            int value = getMemory().getShort(offset());
-            return value < 0 ? (int)((value & 0x7FFF) + 0x8000) : value;
+            return getMemory().getShort(offset()) & 0xffff;
         }
 
         /**
@@ -1363,8 +1361,7 @@ public abstract class Struct {
          * @return a long.
          */
         public final long get() {
-            long value = getMemory().getInt(offset());
-            return value < 0 ? (long)((value & 0x7FFFFFFFL) + 0x80000000L) : value;
+            return getMemory().getInt(offset()) & 0xffffffffL;
         }
 
         /**

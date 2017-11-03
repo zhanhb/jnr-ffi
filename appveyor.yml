@@ -1,0 +1,24 @@
+build: off
+environment:
+  APPVEYOR_SAVE_CACHE_ON_ERROR: true
+  matrix:
+    - OS_ARCH: x86
+    - OS_ARCH: x64
+before_test:
+  - 'IF "%OS_ARCH%"=="x86" SET JAVA_HOME=C:\Program Files (x86)\Java\jdk1.8.0'
+  - 'IF "%OS_ARCH%"=="x86" SET SET PATH=%JAVA_HOME%\bin;%PATH%'
+  - 'SET MINGW_HOME=C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1\mingw32'
+  - 'SET MINGW64_HOME=C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev1\mingw64'
+  - 'SET MSYS_HOME=C:\MinGW\msys\1.0'
+  - 'SET PATH=%MSYS_HOME%\bin;%MINGW_HOME%\bin;%MINGW64_HOME%\bin;%PATH%'
+test_script:
+  - mvnw verify -B
+cache:
+  - '%USERPROFILE%\.m2'
+after_test:
+  - 'SET PATH=C:\Python34;C:\Python34\Scripts;%PATH%'
+  - pip install codecov
+  - codecov -X gcov -f target/site/jacoco/jacoco.xml
+  - mvnw build-helper:remove-project-artifact
+  - >-
+    for /F "delims=" %%A in ('dir /AD /B /S %USERPROFILE%\.m2 ^| FINDSTR SNAPSHOT') DO RMDIR /Q /S %%~fA

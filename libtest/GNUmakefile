@@ -8,10 +8,22 @@ ifeq ($(OS), sunos)
   OS = solaris
 endif
 
+ifeq ($(CPU), sparcv9)
+  MODEL = 64
+endif
+
+ifeq ($(CPU), amd64)
+  MODEL = 64
+endif
+
+ifeq ($(CPU), x86_64)
+  MODEL = 64
+endif
+
 # Default value of $OS on Windows is Windows_NT
 ifeq ($(OS), Windows_NT)
     # that's how we detect x64...
-    ifdef CommonProgramFiles(x86)
+    ifeq ($(MODEL), 64)
       OS = win64
     else
       OS = win32
@@ -104,20 +116,9 @@ ifneq ($(findstring mingw, $(OS)),)
   LIBEXT = dll
   PICFLAGS=
 endif
-ifeq ($(CPU), sparcv9)
-  MODEL = 64
-endif
-
-ifeq ($(CPU), amd64)
-  MODEL = 64
-endif
-
-ifeq ($(CPU), x86_64)
-  MODEL = 64
-endif
 
 # On platforms (linux, solaris) that support both 32bit and 64bit, force building for one or the other
-ifneq ($(strip $(findstring $(OS), solaris)),)
+ifneq ($(strip $(findstring $(OS), solaris linux)),)
   # Change the CC/LD instead of CFLAGS/LDFLAGS, incase other things in the flags
   # makes the libffi build choke
   CC += -m$(MODEL)

@@ -23,6 +23,9 @@ public class VarargsTest {
     @BeforeClass
     public static void setUpClass() throws Exception {
         LibraryLoader<C> loader = FFIProvider.getSystemProvider().createLibraryLoader(C.class);
+        if (Platform.getNativePlatform().getOS() == Platform.OS.WINDOWS) {
+            loader.map("snprintf", "_snprintf");
+        }
         c = loader.load(Platform.getNativePlatform().getStandardCLibraryName());
     }
 
@@ -33,7 +36,8 @@ public class VarargsTest {
 
     @Test public void testSizeT() {
         Pointer ptr = Runtime.getRuntime(c).getMemoryManager().allocate(5000);
-        int size = c.snprintf(ptr, 5000, "%zu", size_t.class, 12345);
+        String format = Platform.getNativePlatform().getOS() == Platform.OS.WINDOWS ? "%Iu" : "%zu";
+        int size = c.snprintf(ptr, 5000, format, size_t.class, 12345);
         Assert.assertEquals(5, size);
         String result = ptr.getString(0, size, Charset.defaultCharset());
         Assert.assertEquals("12345", result);

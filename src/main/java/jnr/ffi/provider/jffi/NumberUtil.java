@@ -108,11 +108,18 @@ public final class NumberUtil {
 
         } else if (boolean.class == to && boolean.class != from && isPrimitiveInt(from)) {
             // Ensure only 0x0 and 0x1 values are used for boolean
+            Label zero = new Label();
+            Label ret = new Label();
+            mv.ifeq(zero);
             mv.iconst_1();
-            mv.iand();
+            mv.go_to(ret);
+            mv.label(zero);
+            mv.iconst_0();
+            mv.label(ret);
         }
     }
 
+    @SuppressWarnings("unused")
     public static void widen(SkinnyMethodAdapter mv, Class from, Class to, NativeType nativeType) {
         if (isPrimitiveInt(from)) {
             if (nativeType == NativeType.UCHAR) {
@@ -149,21 +156,18 @@ public final class NumberUtil {
                     if (long.class == from) {
                         mv.lconst_0();
                         mv.lcmp();
-
-                    } else {
-                        /* Equivalent to
-                           return result == 0 ? true : false;
-                         */
-                        Label zero = new Label();
-                        Label ret = new Label();
-                        mv.iconst_0();
-                        mv.if_icmpeq(zero);
-                        mv.iconst_1();
-                        mv.go_to(ret);
-                        mv.label(zero);
-                        mv.iconst_0();
-                        mv.label(ret);
                     }
+                    /* Equivalent to
+                       return result == 0 ? true : false;
+                    */
+                    Label zero = new Label();
+                    Label ret = new Label();
+                    mv.ifeq(zero);
+                    mv.iconst_1();
+                    mv.go_to(ret);
+                    mv.label(zero);
+                    mv.iconst_0();
+                    mv.label(ret);
                 } else {
                     if (long.class == from) {
                         mv.l2i();
@@ -193,23 +197,67 @@ public final class NumberUtil {
 
     public static void convertPrimitive(SkinnyMethodAdapter mv, final Class from, final Class to, final NativeType nativeType) {
         if (boolean.class == to) {
-            narrow(mv, from, to);
+            switch (nativeType) {
+                case SCHAR:
+                case UCHAR:
+                case SSHORT:
+                case USHORT:
+                case SINT:
+                case UINT:
+                case SLONG:
+                case ULONG:
+                case ADDRESS:
+                    if (sizeof(nativeType) <= 4) {
+                        narrow(mv, from, int.class);
+                        switch (nativeType) {
+                            // some compiler may not clean higher bits
+                            // https://en.wikipedia.org/wiki/X86_calling_conventions#Microsoft_x64_calling_convention
+                            // Parameters less than 64 bits long are not zero extended; the high bits are not zeroed.
+                            // such as we can still get 0x80000000 from `u_int32_t2u_int8_t(0x80000000)`
+                            case SCHAR:
+                            case UCHAR:
+                                narrow(mv, int.class, byte.class);
+                                break;
+                            case USHORT:
+                            case SSHORT:
+                                narrow(mv, int.class, short.class);
+                                break;
+                        }
+                        narrow(mv, int.class, to);
+                    } else {
+                        narrow(mv, from, to);
+                    }
+                    break;
+                case FLOAT:
+                case DOUBLE:
+                    // TODO
+                    break;
+                default:
+                    narrow(mv, from, to);
+                    break;
+            }
             return;
         }
 
         switch (nativeType) {
             case SCHAR:
                 narrow(mv, from, byte.class);
+                // maybe to is char.class
+                narrow(mv, byte.class, to);
                 widen(mv, byte.class, to);
                 break;
 
             case SSHORT:
                 narrow(mv, from, short.class);
+                // `to` may be byte.class
+                narrow(mv, short.class, to);
                 widen(mv, short.class, to);
                 break;
 
             case SINT:
                 narrow(mv, from, int.class);
+                // `to` may be byte.class
+                narrow(mv, int.class, to);
                 widen(mv, int.class, to);
                 break;
 
@@ -217,6 +265,8 @@ public final class NumberUtil {
                 narrow(mv, from, int.class);
                 mv.pushInt(0xff);
                 mv.iand();
+                // `to` may be byte.class
+                narrow(mv, int.class, to);
                 widen(mv, int.class, to);
                 break;
 
@@ -224,6 +274,8 @@ public final class NumberUtil {
                 narrow(mv, from, int.class);
                 mv.pushInt(0xffff);
                 mv.iand();
+                // `to` may be byte.class
+                narrow(mv, int.class, to);
                 widen(mv, int.class, to);
                 break;
 
@@ -238,7 +290,11 @@ public final class NumberUtil {
                         mv.ldc(0xffffffffL);
                         mv.land();
                     }
+                    // `to` may be byte.class
+                    narrow(mv, int.class, to);
                 } else {
+                    // `to` may be byte.class
+                    narrow(mv, from, to);
                     widen(mv, from, to);
                 }
                 break;

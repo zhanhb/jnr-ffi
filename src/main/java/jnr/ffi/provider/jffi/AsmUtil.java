@@ -103,6 +103,9 @@ final class AsmUtil {
         } else if (boxedType == Short.class) {
             return short.class;
 
+        } else if (boxedType == Character.class) {
+            return char.class;
+
         } else if (boxedType == Integer.class) {
             return int.class;
 
@@ -134,6 +137,8 @@ final class AsmUtil {
             return Byte.class;
         } else if (type == short.class) {
             return Short.class;
+        } else if (type == char.class) {
+            return Character.class;
         } else if (type == int.class) {
             return Integer.class;
         } else if (type == long.class) {
@@ -319,6 +324,10 @@ final class AsmUtil {
                 throw new IllegalArgumentException("unsupported Number subclass: " + boxedType);
             }
 
+        } else if (char.class == nativeType) {
+            convertPrimitive(mv, nativeType, char.class);
+            mv.invokevirtual(p(boxedType), "charValue", "()C");
+
         } else if (Boolean.class.isAssignableFrom(boxedType)) {
             unboxBoolean(mv, nativeType);
 
@@ -341,7 +350,11 @@ final class AsmUtil {
         } else if (Address.class == boxedType) {
             mv.invokestatic(boxedType, "valueOf", boxedType, unboxedType);
 
-       } else if (Number.class.isAssignableFrom(boxedType) && boxedType(unboxedType) == boxedType) {
+        } else if (Number.class.isAssignableFrom(boxedType) && boxedType(unboxedType) == boxedType) {
+            mv.invokestatic(boxedType, "valueOf", boxedType, unboxedType);
+
+        } else if (Character.class == boxedType) {
+            convertPrimitive(mv, unboxedType, char.class);
             mv.invokestatic(boxedType, "valueOf", boxedType, unboxedType);
 
         } else {

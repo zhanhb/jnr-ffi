@@ -112,7 +112,7 @@ final class FastIntMethodGenerator extends AbstractFastNumericMethodGenerator {
     }
 
 
-    static int getMaximumFastIntParameters() {
+    private static int getMaximumFastIntParameters() {
         try {
             com.kenai.jffi.Invoker.class.getDeclaredMethod("invokeI6", CallContext.class, long.class,
                     int.class, int.class, int.class, int.class, int.class, int.class);
@@ -144,7 +144,7 @@ final class FastIntMethodGenerator extends AbstractFastNumericMethodGenerator {
         return Pointer.class.isAssignableFrom(javaParameterType);
     }
 
-    static boolean isFastIntResult(Platform platform, ResultType resultType) {
+    private static boolean isFastIntResult(Platform platform, ResultType resultType) {
         return isFastIntType(platform, resultType)
                 || resultType.getNativeType() == NativeType.VOID
                 || (resultType.getNativeType() == NativeType.ADDRESS && sizeof(resultType)== 4)
@@ -152,7 +152,7 @@ final class FastIntMethodGenerator extends AbstractFastNumericMethodGenerator {
     }
 
 
-    static boolean isFastIntParameter(Platform platform, ParameterType parameterType) {
+    private static boolean isFastIntParameter(Platform platform, ParameterType parameterType) {
         return isFastIntType(platform, parameterType)
             || (parameterType.getNativeType() == NativeType.ADDRESS && sizeof(parameterType)== 4)
                 && isSupportedPointerParameterType(parameterType.effectiveJavaType());

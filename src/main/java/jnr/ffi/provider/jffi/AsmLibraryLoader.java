@@ -35,7 +35,6 @@ import static org.objectweb.asm.Opcodes.ILOAD;
 import static org.objectweb.asm.Opcodes.IRETURN;
 import static org.objectweb.asm.Opcodes.V1_6;
 
-import java.io.PrintWriter;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
@@ -65,15 +64,13 @@ import jnr.ffi.provider.ParameterType;
 import jnr.ffi.provider.ResultType;
 import jnr.ffi.provider.jffi.AsmBuilder.ObjectField;
 
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Type;
 
 import com.kenai.jffi.Function;
 
+import static org.objectweb.asm.Opcodes.ACC_VARARGS;
+
 public class AsmLibraryLoader extends LibraryLoader {
-    public final static boolean DEBUG = Boolean.getBoolean("jnr.ffi.compile.dump");
     private static final AtomicLong nextClassID = new AtomicLong(0);
     private static final AtomicLong uniqueId = new AtomicLong(0);
     private static final ThreadLocal<AsmClassLoader> classLoader = new ThreadLocal<AsmClassLoader>();
@@ -98,9 +95,7 @@ public class AsmLibraryLoader extends LibraryLoader {
     private <T> T generateInterfaceImpl(final NativeLibrary library, Class<T> interfaceClass, Map<LibraryOption, ?> libraryOptions,
                                         AsmClassLoader classLoader) {
 
-        boolean debug = DEBUG && !interfaceClass.isAnnotationPresent(NoTrace.class);
-        ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
-        ClassVisitor cv = debug ? AsmUtil.newCheckClassAdapter(cw) : cw;
+        ClassWriter cv = ClassWriter.newInstance();
 
         AsmBuilder builder = new AsmBuilder(runtime, p(interfaceClass) + "$jnr$ffi$" + nextClassID.getAndIncrement(), cv, classLoader);
 
@@ -211,7 +206,7 @@ public class AsmLibraryLoader extends LibraryLoader {
         }
 
         // Create the constructor to set the instance fields
-        SkinnyMethodAdapter init = new SkinnyMethodAdapter(cv, ACC_PUBLIC, "<init>",
+        SkinnyMethodAdapter init = cv.visitMethod(ACC_PUBLIC, "<init>",
                 sig(void.class, jnr.ffi.Runtime.class, NativeLibrary.class, Object[].class),
                 null, null);
         init.start();
@@ -230,20 +225,11 @@ public class AsmLibraryLoader extends LibraryLoader {
         cv.visitEnd();
 
         try {
-            byte[] bytes = cw.toByteArray();
-            if (debug) {
-                ClassVisitor trace = AsmUtil.newTraceClassVisitor(new PrintWriter(System.err));
-                new ClassReader(bytes).accept(trace, 0);
-            }
-
+            byte[] bytes = cv.toByteArray();
             Class<? extends T> implClass = classLoader.defineClass(builder.getClassNamePath().replace("/", "."), bytes).asSubclass(interfaceClass);
             Constructor<? extends T> cons = implClass.getDeclaredConstructor(jnr.ffi.Runtime.class, NativeLibrary.class, Object[].class);
             T result = cons.newInstance(runtime, library, builder.getObjectFieldValues());
 
-            // Attach any native method stubs - we have to delay this until the
-            // implementation class is loaded for it to work.
-            System.err.flush();
-            System.out.flush();
             compiler.attach(implClass);
 
             return result;
@@ -252,9 +238,9 @@ public class AsmLibraryLoader extends LibraryLoader {
         }
     }
 
-    private void generateFunctionNotFound(ClassVisitor cv, String className, String errorFieldName, String functionName,
+    private void generateFunctionNotFound(ClassWriter cv, String className, String errorFieldName, String functionName,
                                                 String descriptor) {
-        SkinnyMethodAdapter mv = new SkinnyMethodAdapter(cv, ACC_PUBLIC | ACC_FINAL, functionName,
+        SkinnyMethodAdapter mv = cv.visitMethod(ACC_PUBLIC | ACC_FINAL, functionName,
                 descriptor, null, null);
         mv.start();
         mv.getstatic(className, errorFieldName, ci(String.class));
@@ -266,7 +252,7 @@ public class AsmLibraryLoader extends LibraryLoader {
 
     private void generateVarargsInvocation(AsmBuilder builder, Method m, ObjectField field) {
         Class<?>[] parameterTypes = m.getParameterTypes();
-        SkinnyMethodAdapter mv = new SkinnyMethodAdapter(builder.getClassVisitor(), ACC_PUBLIC | ACC_FINAL,
+        SkinnyMethodAdapter mv = builder.getClassVisitor().visitMethod(ACC_PUBLIC | ACC_FINAL | ACC_VARARGS,
                 m.getName(),
                 Type.getMethodDescriptor(m), null, null);
         mv.start();

@@ -78,7 +78,7 @@ public abstract class Struct {
         }
 
         final int size() {
-            return this.alignment.intValue() > 0 ? size + ((-this.size) & (this.minAlign - 1)) : size;
+            return align(size, minAlign);
         }
 
         final int getMinimumAlignment() {
@@ -784,7 +784,7 @@ public abstract class Struct {
         }
 
         public final boolean get() {
-            return (getMemory().getByte(offset()) & 0x1) != 0;
+            return getMemory().getByte(offset()) != 0;
         }
 
         public final void set(boolean value) {
@@ -801,7 +801,7 @@ public abstract class Struct {
         }
 
         public final boolean get() {
-            return (getMemory().getInt(offset()) & 0x1) != 0;
+            return getMemory().getInt(offset()) != 0;
         }
 
         public final void set(boolean value) {
@@ -815,7 +815,7 @@ public abstract class Struct {
     }
 
     public final boolean get() {
-      return (getMemory().getShort(offset()) & 0x1) != 0;
+      return getMemory().getShort(offset()) != 0;
     }
 
     public final void set(boolean value) {
@@ -1655,10 +1655,7 @@ public abstract class Struct {
          */
         public final long get() {
             long value = getMemory().getNativeLong(offset());
-            final long mask = getRuntime().findType(NativeType.SLONG).size() == 32 ? 0xffffffffL : 0xffffffffffffffffL;
-            return value < 0
-                    ? (long) ((value & mask) + mask + 1)
-                    : value;
+            return (getRuntime().longSize() == 4) ? value & 0xffffffffL : value;
         }
 
         /**

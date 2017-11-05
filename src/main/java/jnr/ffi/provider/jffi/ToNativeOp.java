@@ -20,7 +20,6 @@ package jnr.ffi.provider.jffi;
 
 import jnr.ffi.Address;
 import jnr.ffi.NativeType;
-import jnr.ffi.Pointer;
 import jnr.ffi.provider.ToNativeType;
 
 import java.util.Collections;
@@ -105,10 +104,10 @@ abstract class ToNativeOp {
         @Override
         void emitPrimitive(SkinnyMethodAdapter mv, Class<?> primitiveClass, NativeType nativeType) {
             if (!javaType.isPrimitive()) {
-                unboxNumber(mv, javaType, float.class);
+                mv.invokevirtual("java/lang/Float", "floatValue", "()F");
             }
             if (primitiveClass != float.class) {
-                mv.invokestatic(Float.class, "floatToRawIntBits", int.class, float.class);
+                mv.invokestatic("java/lang/Float", "floatToRawIntBits", "(F)I");
                 widen(mv, int.class, primitiveClass);
             }
         }
@@ -128,19 +127,6 @@ abstract class ToNativeOp {
                 mv.invokestatic(Double.class, "doubleToRawLongBits", long.class, double.class);
                 narrow(mv, long.class, primitiveClass);
             }
-        }
-    }
-
-    static class Delegate extends Primitive {
-        static final ToNativeOp INSTANCE = new Delegate();
-        Delegate() {
-            super(Pointer.class);
-        }
-
-        @Override
-        void emitPrimitive(SkinnyMethodAdapter mv, Class<?> primitiveClass, NativeType nativeType) {
-            // delegates are always direct, so handle without the strategy processing
-            unboxPointer(mv, primitiveClass);
         }
     }
 

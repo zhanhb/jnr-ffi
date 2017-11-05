@@ -27,7 +27,6 @@ import jnr.ffi.util.Annotations;
 import java.lang.annotation.Annotation;
 import java.lang.ref.Reference;
 import java.lang.ref.SoftReference;
-import java.lang.reflect.Method;
 import java.util.*;
 
 /**
@@ -46,34 +45,6 @@ class ConverterMetaData {
         toNativeMethodAnnotations = getConverterMethodAnnotations(converterClass, "toNative", nativeType, ToNativeContext.class);
         toNativeAnnotations = Annotations.mergeAnnotations(classAnnotations, toNativeMethodAnnotations, nativeTypeMethodAnnotations);
         fromNativeAnnotations = Annotations.mergeAnnotations(classAnnotations, fromNativeMethodAnnotations, nativeTypeMethodAnnotations);
-    }
-
-    
-    private static Collection<Annotation> getToNativeMethodAnnotations(Class<?> converterClass, Class<?> resultClass) {
-        try {
-            final Method baseMethod = converterClass.getMethod("toNative", Object.class, ToNativeContext.class);
-            for (Method m : converterClass.getMethods()) {
-                if (!m.getName().equals("toNative")) {
-                    continue;
-                }
-                if (!resultClass.isAssignableFrom(m.getReturnType())) {
-                    continue;
-                }
-
-                Class<?>[] methodParameterTypes = m.getParameterTypes();
-                if (methodParameterTypes.length != 2 || !methodParameterTypes[1].isAssignableFrom(ToNativeContext.class)) {
-                    continue;
-                }
-
-                return Annotations.mergeAnnotations(Annotations.sortedAnnotationCollection(m.getAnnotations()), Annotations.sortedAnnotationCollection(baseMethod.getAnnotations()));
-            }
-
-            return Annotations.EMPTY_ANNOTATIONS;
-        } catch (SecurityException se) {
-            return Annotations.EMPTY_ANNOTATIONS;
-        } catch (NoSuchMethodException ignored) {
-            return Annotations.EMPTY_ANNOTATIONS;
-        }
     }
 
     private static Collection<Annotation> getConverterMethodAnnotations(Class<?> converterClass, String methodName, Class<?>... parameterClasses) {

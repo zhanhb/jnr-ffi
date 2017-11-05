@@ -24,7 +24,6 @@ import jnr.ffi.mapper.*;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.lang.reflect.Type;
 import java.util.Collection;
 
 import static jnr.ffi.util.Annotations.sortedAnnotationCollection;
@@ -63,8 +62,8 @@ final class ClosureUtil {
     static Method getDelegateMethod(Class<?> closureClass) {
         Method callMethod = null;
         for (Method m : closureClass.getMethods()) {
-            if (m.isAnnotationPresent(Delegate.class) && Modifier.isPublic(m.getModifiers())
-                    && !Modifier.isStatic(m.getModifiers())) {
+            if (m.isAnnotationPresent(Delegate.class)
+                    && (m.getModifiers() & (Modifier.PUBLIC | Modifier.STATIC)) == Modifier.PUBLIC) {
                 callMethod = m;
                 break;
             }

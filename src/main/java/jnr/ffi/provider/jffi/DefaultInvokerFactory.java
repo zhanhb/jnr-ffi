@@ -21,7 +21,6 @@ package jnr.ffi.provider.jffi;
 import static jnr.ffi.provider.jffi.InvokerUtil.getCallContext;
 import static jnr.ffi.provider.jffi.InvokerUtil.getParameterTypes;
 import static jnr.ffi.provider.jffi.InvokerUtil.getResultType;
-import static jnr.ffi.provider.jffi.NumberUtil.getBoxedClass;
 import static jnr.ffi.provider.jffi.NumberUtil.sizeof;
 import static jnr.ffi.util.Annotations.sortedAnnotationCollection;
 
@@ -155,8 +154,11 @@ final class DefaultInvokerFactory {
         if (Void.class.isAssignableFrom(returnType) || void.class == returnType) {
             return VoidInvoker.INSTANCE;
         
-        } else if (Boolean.class == returnType || boolean.class == returnType) {
+        } else if (Boolean.class.isAssignableFrom(returnType) || boolean.class == returnType) {
             return BooleanInvoker.INSTANCE;
+
+        } else if (Character.class.isAssignableFrom(returnType) || char.class == returnType) {
+            return CharacterInvoker.INSTANCE;
 
         } else if (Number.class.isAssignableFrom(returnType) || returnType.isPrimitive()) {
             return new ConvertingInvoker(getNumberResultConverter(resultType), null,
@@ -203,7 +205,7 @@ final class DefaultInvokerFactory {
     }
 
     static Marshaller getMarshaller(Class<?> type, NativeType nativeType, Collection<Annotation> annotations) {
-        if (Number.class.isAssignableFrom(type) || (type.isPrimitive() && Number.class.isAssignableFrom(getBoxedClass(type)))) {
+        if (Number.class.isAssignableFrom(Primitives.wrap(type))) {
             switch (nativeType) {
                 case SCHAR:
                     return new Int8Marshaller(Signed8Converter.INSTANCE);
@@ -240,6 +242,9 @@ final class DefaultInvokerFactory {
 
         } else if (Boolean.class == type || boolean.class == type) {
             return BooleanMarshaller.INSTANCE;
+        
+        } else if (Character.class.isAssignableFrom(type) || char.class == type) {
+            return CharacterMarshaller.INSTANCE;
         
         } else if (Pointer.class.isAssignableFrom(type)) {
             return new PointerMarshaller(annotations);
@@ -428,7 +433,11 @@ final class DefaultInvokerFactory {
             HeapInvocationBuffer buffer = new HeapInvocationBuffer(function.getCallContext());
             try {
                 if (parameters != null) for (int i = 0; i < parameters.length; ++i) {
-                    marshallers[i].marshal(session, buffer, parameters[i]);
+                    Object o = parameters[i];
+                    if (o instanceof Character) {
+                        o = (int) (Character) o;
+                    }
+                    marshallers[i].marshal(session, buffer, o);
                 }
 
                 return functionInvoker.invoke(runtime, function, buffer);
@@ -506,7 +515,17 @@ final class DefaultInvokerFactory {
     static class BooleanInvoker extends BaseInvoker {
         static FunctionInvoker INSTANCE = new BooleanInvoker();
         public final Object invoke(Runtime runtime, Function function, HeapInvocationBuffer buffer) {
+            if (function.getReturnType().size() == 8) {
+                return invoker.invokeLong(function, buffer) != 0;
+            }
             return invoker.invokeInt(function, buffer) != 0;
+        }
+    }
+
+    static class CharacterInvoker extends BaseInvoker {
+        static FunctionInvoker INSTANCE = new CharacterInvoker();
+        public final Object invoke(Runtime runtime, Function function, HeapInvocationBuffer buffer) {
+            return (char) invoker.invokeInt(function, buffer);
         }
     }
 
@@ -549,6 +568,13 @@ final class DefaultInvokerFactory {
         static final Marshaller INSTANCE = new BooleanMarshaller();
         public void marshal(InvocationSession session, HeapInvocationBuffer buffer, Object parameter) {
             buffer.putInt(((Boolean) parameter).booleanValue() ? 1 : 0);
+        }
+    }
+
+    static class CharacterMarshaller implements Marshaller {
+        static final CharacterMarshaller INSTANCE = new CharacterMarshaller();
+        public void marshal(InvocationSession session, HeapInvocationBuffer buffer, Object parameter) {
+            buffer.putInt(((Character) parameter).charValue());
         }
     }
 
@@ -683,19 +709,6 @@ final class DefaultInvokerFactory {
         
     }
 
-    private static boolean isUnsigned(NativeType nativeType) {
-        switch (nativeType) {
-            case UCHAR:
-            case USHORT:
-            case UINT:
-            case ULONG:
-                return true;
-
-            default:
-                return false;
-        }
-    }
-
     static DataConverter<Number, Number> getNumberDataConverter(NativeType nativeType) {
         switch (nativeType) {
             case SCHAR:
@@ -766,7 +779,7 @@ final class DefaultInvokerFactory {
 
         @Override
         public Number toNative(Number value, ToNativeContext context) {
-            return value.intValue() & 0xffff;
+            return value.byteValue() & 0xff;
         }
     }
 
@@ -858,24 +871,6 @@ final class DefaultInvokerFactory {
         @Override
         public Number toNative(Number value, ToNativeContext context) {
             return value.doubleValue();
-        }
-    }
-
-    static final class BooleanConverter implements DataConverter<Boolean, Number> {
-        static final DataConverter<Boolean, Number> INSTANCE = new BooleanConverter();
-        @Override
-        public Boolean fromNative(Number nativeValue, FromNativeContext context) {
-            return (nativeValue.intValue() & 0x1) != 0;
-        }
-
-        @Override
-        public Number toNative(Boolean value, ToNativeContext context) {
-            return value ? 1 : 0;
-        }
-
-        @Override
-        public Class<Number> nativeType() {
-            return Number.class;
         }
     }
 

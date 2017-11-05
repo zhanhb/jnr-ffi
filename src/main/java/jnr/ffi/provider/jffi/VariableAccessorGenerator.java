@@ -22,14 +22,7 @@ import jnr.ffi.NativeType;
 import jnr.ffi.Pointer;
 import jnr.ffi.Variable;
 import jnr.ffi.mapper.*;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.Label;
-
-import java.io.PrintWriter;
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Constructor;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
@@ -70,7 +63,7 @@ public class VariableAccessorGenerator {
 
         Variable<?> variableAccessor = buildVariableAccessor(builder.getRuntime(), address, interfaceClass, javaType, annotations,
                 toNativeConverter, fromNativeConverter, classLoader);
-        SkinnyMethodAdapter mv = new SkinnyMethodAdapter(builder.getClassVisitor(), ACC_PUBLIC | ACC_FINAL,
+        SkinnyMethodAdapter mv = builder.getClassVisitor().visitMethod(ACC_PUBLIC | ACC_FINAL,
                 variableName, sig(Variable.class), null, null);
         mv.start();
         mv.aload(0);
@@ -83,15 +76,13 @@ public class VariableAccessorGenerator {
     Variable<?> buildVariableAccessor(jnr.ffi.Runtime runtime, long address, Class<?> interfaceClass, Class<?> javaType, Collection<Annotation> annotations,
                                    ToNativeConverter<?, ?> toNativeConverter, FromNativeConverter<?, ?> fromNativeConverter,
                                    AsmClassLoader classLoader) {
-        boolean debug = AsmLibraryLoader.DEBUG && !hasAnnotation(annotations, NoTrace.class);
-        ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
-        ClassVisitor cv = debug ? AsmUtil.newCheckClassAdapter(cw) : cw;
+        ClassWriter cv = ClassWriter.newInstance();
 
         AsmBuilder builder = new AsmBuilder(runtime, p(interfaceClass) + "$VariableAccessor$$" + nextClassID.getAndIncrement(), cv, classLoader);
         cv.visit(V1_6, ACC_PUBLIC | ACC_FINAL, builder.getClassNamePath(), null, p(Object.class),
                 new String[] { p(Variable.class) });
 
-        SkinnyMethodAdapter set = new SkinnyMethodAdapter(builder.getClassVisitor(), ACC_PUBLIC | ACC_FINAL, "set",
+        SkinnyMethodAdapter set = builder.getClassVisitor().visitMethod(ACC_PUBLIC | ACC_FINAL, "set",
                 sig(void.class, Object.class),
                 null, null);
 
@@ -131,7 +122,7 @@ public class VariableAccessorGenerator {
         set.visitMaxs(10, 10);
         set.visitEnd();
 
-        SkinnyMethodAdapter get = new SkinnyMethodAdapter(builder.getClassVisitor(), ACC_PUBLIC | ACC_FINAL, "get",
+        SkinnyMethodAdapter get = builder.getClassVisitor().visitMethod(ACC_PUBLIC | ACC_FINAL, "get",
                 sig(Object.class),
                 null, null);
 
@@ -145,7 +136,7 @@ public class VariableAccessorGenerator {
         get.visitMaxs(10, 10);
         get.visitEnd();
 
-        SkinnyMethodAdapter init = new SkinnyMethodAdapter(cv, ACC_PUBLIC, "<init>",
+        SkinnyMethodAdapter init = cv.visitMethod(ACC_PUBLIC, "<init>",
                 sig(void.class, Object[].class),
                 null, null);
         init.start();
@@ -161,12 +152,7 @@ public class VariableAccessorGenerator {
         cv.visitEnd();
 
         try {
-            byte[] bytes = cw.toByteArray();
-            if (debug) {
-                ClassVisitor trace = AsmUtil.newTraceClassVisitor(new PrintWriter(System.err));
-                new ClassReader(bytes).accept(trace, 0);
-            }
-
+            byte[] bytes = cv.toByteArray();
             return classLoader.defineClass(builder.getClassNamePath().replace("/", "."), bytes)
                     .asSubclass(Variable.class)
                     .getDeclaredConstructor(Object[].class)

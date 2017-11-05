@@ -30,15 +30,13 @@ import java.io.PrintStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.concurrent.atomic.AtomicBoolean;
+import jnr.ffi.util.ref.FinalizableWeakReference;
 
 /**
  * Base class for most X86_32/X86_64 stub compilers
  */
 abstract class AbstractX86StubCompiler extends StubCompiler {
-    public final static boolean DEBUG = Boolean.getBoolean("jnr.ffi.compile.dump");
     private final jnr.ffi.Runtime runtime;
 
     protected AbstractX86StubCompiler(jnr.ffi.Runtime runtime) {
@@ -51,8 +49,8 @@ abstract class AbstractX86StubCompiler extends StubCompiler {
 
     private static final class StaticDataHolder {
         // Keep a reference from the loaded class to the pages holding the code for that class.
-        static final Map<Class, PageHolder> PAGES
-                = Collections.synchronizedMap(new WeakHashMap<Class, PageHolder>());
+        static final Map<Class<?>, PageHolder> PAGES
+                = new ConcurrentWeakIdentityHashMap<Class<?>, PageHolder>();
     }
     final List<Stub> stubs = new LinkedList<Stub>();
 
@@ -69,32 +67,23 @@ abstract class AbstractX86StubCompiler extends StubCompiler {
         }
     }
 
-    static final AtomicIntegerFieldUpdater<PageHolder> PAGE_HOLDER_UPDATER = AtomicIntegerFieldUpdater.newUpdater(PageHolder.class, "disposed");
-
-    static final class PageHolder {
+    static final class PageHolder extends FinalizableWeakReference<Object> {
         final PageManager pm;
         final long memory;
         final long pageCount;
-        volatile int disposed;
+        private final AtomicBoolean disposed = new AtomicBoolean();
 
-        public PageHolder(PageManager pm, long memory, long pageCount) {
+        public PageHolder(Object holder, PageManager pm, long memory, long pageCount) {
+            super(holder, NativeFinalizer.getInstance().getFinalizerQueue());
             this.pm = pm;
             this.memory = memory;
             this.pageCount = pageCount;
         }
 
         @Override
-        protected void finalize() throws Throwable {
-            try {
-                int disposed = PAGE_HOLDER_UPDATER.getAndSet(this, 1);
-                if (disposed == 0) {
-                    pm.freePages(memory, (int) pageCount);
-                }
-            } catch (Throwable t) {
-                Logger.getLogger(getClass().getName()).log(Level.WARNING, 
-                    "Exception when freeing native pages: %s", t.getLocalizedMessage());
-            } finally {
-                super.finalize();
+        public void finalizeReferent() {
+            if (disposed.compareAndSet(false, true)) {
+                pm.freePages(memory, (int) pageCount);
             }
         }
 
@@ -121,13 +110,11 @@ abstract class AbstractX86StubCompiler extends StubCompiler {
         if (code == 0) {
             throw new OutOfMemoryError("allocatePages failed for codeSize=" + codeSize);
         }
-        PageHolder page = new PageHolder(pm, code, npages);
+        PageHolder page = new PageHolder(clazz, pm, code, npages);
 
         // Now relocate/copy all the assembler stubs into the real code area
         List<NativeMethod> methods = new ArrayList<NativeMethod>(stubs.size());
         long fn = code;
-        PrintStream dbg = System.err;
-        System.out.flush(); System.err.flush();
 
         for (Stub stub : stubs) {
             Assembler asm = stub.assembler;
@@ -138,7 +125,8 @@ abstract class AbstractX86StubCompiler extends StubCompiler {
             buf.flip();
             MemoryIO.getInstance().putByteArray(fn, buf.array(), buf.arrayOffset(), buf.limit());
 
-            if (DEBUG && X86Disassembler.isAvailable()) {
+            if (Debug.getInstance().isOn() && X86Disassembler.isAvailable()) {
+                PrintStream dbg = System.err;
 
                 dbg.println(clazz.getName() + "." + stub.name + " " + stub.signature);
                 X86Disassembler disassembler = X86Disassembler.create();

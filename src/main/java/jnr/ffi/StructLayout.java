@@ -312,7 +312,7 @@ public class StructLayout extends Type {
         }
 
         public final boolean get(jnr.ffi.Pointer ptr) {
-            return (ptr.getByte(offset()) & 0x1) != 0;
+            return ptr.getByte(offset()) != 0;
         }
 
         public final void set(jnr.ffi.Pointer ptr, boolean value) {
@@ -333,11 +333,66 @@ public class StructLayout extends Type {
         }
 
         public final boolean get(jnr.ffi.Pointer ptr) {
-            return (ptr.getInt(offset()) & 0x1) != 0;
+            return ptr.getInt(offset()) != 0;
         }
 
         public final void set(jnr.ffi.Pointer ptr, boolean value) {
             ptr.putInt(offset(), value ? 1 : 0);
+        }
+    }
+
+    public final class BOOL16 extends AbstractBoolean {
+
+        public BOOL16() {
+            super(NativeType.SSHORT);
+        }
+
+        public final boolean get(jnr.ffi.Pointer ptr) {
+            return ptr.getShort(offset()) != 0;
+        }
+
+        public final void set(jnr.ffi.Pointer ptr, boolean value) {
+            ptr.putShort(offset(), (short) (value ? 1 : 0));
+        }
+    }
+
+    public final class BYTE extends Unsigned8 {
+
+        public BYTE() {
+        }
+
+        public BYTE(Offset offset) {
+            super(offset);
+        }
+    }
+
+    public final class WORD extends Unsigned16 {
+
+        public WORD() {
+        }
+
+        public WORD(Offset offset) {
+            super(offset);
+        }
+    }
+
+    public final class DWORD extends Unsigned32 {
+
+        public DWORD() {
+        }
+
+        public DWORD(Offset offset) {
+            super(offset);
+        }
+    }
+
+    public final class LONG extends Signed32 {
+
+        public LONG() {
+        }
+
+        public LONG(Offset offset) {
+            super(offset);
         }
     }
 
@@ -1130,10 +1185,7 @@ public class StructLayout extends Type {
          */
         public final long get(jnr.ffi.Pointer ptr) {
             long value = ptr.getNativeLong(offset());
-            final long mask = getRuntime().findType(NativeType.SLONG).size() == 4 ? 0xffffffffL : 0xffffffffffffffffL;
-            return value < 0
-                    ? (long) ((value & mask) + mask + 1)
-                    : value;
+            return getRuntime().longSize() == 4 ? value & 0xffffffffL : value;
         }
 
         /**

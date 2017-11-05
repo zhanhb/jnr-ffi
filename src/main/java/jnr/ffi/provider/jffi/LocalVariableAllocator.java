@@ -34,10 +34,6 @@ class LocalVariableAllocator {
         this.nextIndex = AsmUtil.calculateLocalVariableSpace(parameterTypes) + 1;
     }
 
-    LocalVariableAllocator(int nextIndex) {
-        this.nextIndex = nextIndex;
-    }
-
     LocalVariable allocate(Class<?> type) {
         LocalVariable var = new LocalVariable(type, nextIndex);
         this.nextIndex += AsmUtil.calculateLocalVariableSpace(type);

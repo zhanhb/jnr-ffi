@@ -80,10 +80,10 @@ public class StringResultConverter implements FromNativeConverter<String, Pointe
         }
 
         Search: for (int idx = 0; ; ) {
-            idx += pointer.indexOf(idx, (byte) 0);
-            for (int tcount = 1; tcount < terminatorWidth; tcount++) {
+            idx += (pointer.indexOf(idx, (byte) 0) + terminatorWidth - 1) & -terminatorWidth;
+            for (int tcount = 0; tcount < terminatorWidth; tcount++) {
                 if (pointer.getByte(idx + tcount) != 0) {
-                    idx += tcount;
+                    idx += terminatorWidth;
                     continue Search;
                 }
             }

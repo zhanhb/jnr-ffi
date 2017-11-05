@@ -23,10 +23,13 @@ import com.kenai.jffi.Function;
 import jnr.ffi.mapper.*;
 import jnr.ffi.provider.*;
 
+import org.objectweb.asm.Type;
+
 import static jnr.ffi.provider.jffi.AsmUtil.*;
 import static jnr.ffi.provider.jffi.CodegenUtils.*;
 import static org.objectweb.asm.Opcodes.ACC_FINAL;
 import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
+import static org.objectweb.asm.Opcodes.IRETURN;
 
 /**
  *
@@ -41,7 +44,7 @@ abstract class BaseMethodGenerator implements MethodGenerator {
             javaParameterTypes[i] = parameterTypes[i].getDeclaredType();
         }
 
-        SkinnyMethodAdapter mv = new SkinnyMethodAdapter(builder.getClassVisitor(), ACC_PUBLIC | ACC_FINAL,
+        SkinnyMethodAdapter mv = builder.getClassVisitor().visitMethod(ACC_PUBLIC | ACC_FINAL,
                 functionName,
                 sig(resultType.getDeclaredType(), javaParameterTypes), null, null);
         mv.start();
@@ -75,8 +78,8 @@ abstract class BaseMethodGenerator implements MethodGenerator {
 
         if (parameterType.getToNativeConverter() != null) {
             LocalVariable converted = localVariableAllocator.allocate(parameterType.getToNativeConverter().nativeType());
+            mv.dup();
             mv.astore(converted);
-            mv.aload(converted);
             return converted;
         }
 
@@ -119,7 +122,7 @@ abstract class BaseMethodGenerator implements MethodGenerator {
         } else {
             emitFromNativeConversion(builder, mv, resultType, unboxedResultType);
         }
-        emitReturnOp(mv, resultType.getDeclaredType());
+        mv.visitInsn(Type.getType(resultType.getDeclaredType()).getOpcode(IRETURN));
     }
 
     static void emitPostInvoke(AsmBuilder builder, final SkinnyMethodAdapter mv, ParameterType[] parameterTypes,

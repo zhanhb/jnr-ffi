@@ -38,6 +38,7 @@ final class X86_32StubCompiler extends AbstractX86StubCompiler {
         super(runtime);
     }
 
+    @Override
     boolean canCompile(ResultType returnType, ParameterType[] parameterTypes, CallingConvention convention) {
 
         switch (returnType.getNativeType()) {
@@ -66,9 +67,6 @@ final class X86_32StubCompiler extends AbstractX86StubCompiler {
             return false;
         }
 
-        int fCount = 0;
-        int iCount = 0;
-
         for (ParameterType t : parameterTypes) {
             switch (t.getNativeType()) {
                 case SCHAR:
@@ -82,12 +80,10 @@ final class X86_32StubCompiler extends AbstractX86StubCompiler {
                 case SLONGLONG:
                 case ULONGLONG:
                 case ADDRESS:
-                    ++iCount;
                     break;
 
                 case FLOAT:
                 case DOUBLE:
-                    ++fCount;
                     break;
 
                 default:
@@ -151,16 +147,22 @@ final class X86_32StubCompiler extends AbstractX86StubCompiler {
             a.mov(dword_ptr(esp, dstoff), eax);
 
             if (dstParameterSize > 4) {
-                if (parameterTypes[i].getNativeType() == NativeType.SLONGLONG && long.class != parameterClasses[i]) {
-                    // sign extend from int.class -> long long
-                    a.sar(eax, imm(31));
-
-                } else if (parameterTypes[i].getNativeType() == NativeType.ULONGLONG && long.class != parameterClasses[i]) {
-                    // zero extend from int.class -> unsigned long long
-                    a.mov(dword_ptr(esp, dstoff + 4), imm(0));
-
-                } else {
-                    a.mov(eax, dword_ptr(esp, disp + 4));
+                switch (parameterTypes[i].getNativeType()) {
+                    case SLONGLONG:
+                    case ULONGLONG:
+                        if (long.class != parameterClasses[i]) {
+                            // sign extend from int.class -> long long
+                            a.sar(eax, imm(31));
+                        } else {
+                            a.mov(eax, dword_ptr(esp, disp + 4));
+                        }
+                        break;
+                    case DOUBLE:
+                        a.mov(eax, dword_ptr(esp, disp + 4));
+                        break;
+                    default:
+                        // impossible
+                        break;
                 }
                 a.mov(dword_ptr(esp, dstoff + 4), eax);
             }
@@ -284,6 +286,18 @@ final class X86_32StubCompiler extends AbstractX86StubCompiler {
             }
 
         }
+        if (boolean.class == resultClass) {
+            switch (resultType.getNativeType()) {
+                case SLONGLONG:
+                case ULONGLONG:
+                    a.or_(eax, edx);
+                    break;
+                default:
+                    a.test(eax, eax);
+                    break;
+            }
+            a.setne(al);
+        }
         // Restore esp to the original position and return
         a.add(esp, imm(stackadj));
         a.ret();
@@ -291,7 +305,7 @@ final class X86_32StubCompiler extends AbstractX86StubCompiler {
         stubs.add(new Stub(name, sig(resultClass, parameterClasses), a));
     }
 
-    static int parameterSize(ParameterType parameterType) {
+    private static int parameterSize(ParameterType parameterType) {
         switch (parameterType.getNativeType()) {
             case SCHAR:
             case UCHAR:
@@ -315,8 +329,8 @@ final class X86_32StubCompiler extends AbstractX86StubCompiler {
         }
     }
 
-    static int parameterSize(Class<?> t) {
-        if (byte.class == t || short.class == t || char.class == t | int.class == t || float.class == t) {
+    private static int parameterSize(Class<?> t) {
+        if (boolean.class == t || byte.class == t || short.class == t || char.class == t | int.class == t || float.class == t) {
             return 4;
 
         } else if (long.class == t || double.class == t) {
@@ -326,7 +340,7 @@ final class X86_32StubCompiler extends AbstractX86StubCompiler {
     }
 
 
-    static int resultSize(ResultType resultType) {
+    private static int resultSize(ResultType resultType) {
         switch (resultType.getNativeType()) {
             case SCHAR:
             case UCHAR:
@@ -355,7 +369,7 @@ final class X86_32StubCompiler extends AbstractX86StubCompiler {
         }
     }
 
-    static Mem ptr(Register base, long disp, NativeType nativeType) {
+    private static Mem ptr(Register base, long disp, NativeType nativeType) {
         switch (nativeType) {
             case SCHAR:
             case UCHAR:

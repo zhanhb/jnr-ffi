@@ -22,14 +22,14 @@ import jnr.ffi.Pointer;
 import jnr.ffi.mapper.*;
 import jnr.ffi.provider.ClosureManager;
 
-import java.util.IdentityHashMap;
-import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  *
  */
 final class NativeClosureManager implements ClosureManager {
-    private volatile Map<Class<?>, NativeClosureFactory> factories = new IdentityHashMap<Class<?>, NativeClosureFactory>();
+    private volatile ConcurrentMap<Class<?>, NativeClosureFactory<?>> factories = new ConcurrentHashMap<Class<?>, NativeClosureFactory<?>>();
     private final jnr.ffi.Runtime runtime;
     private final SignatureTypeMapper typeMapper;
     private final AsmClassLoader classLoader;
@@ -41,7 +41,8 @@ final class NativeClosureManager implements ClosureManager {
     }
 
     <T> NativeClosureFactory<T> getClosureFactory(Class<T> closureClass) {
-        NativeClosureFactory<T> factory = factories.get(closureClass);
+        @SuppressWarnings("unchecked")
+        NativeClosureFactory<T> factory = (NativeClosureFactory<T>) factories.get(closureClass);
         if (factory != null) {
             return factory;
         }
@@ -49,32 +50,27 @@ final class NativeClosureManager implements ClosureManager {
         return initClosureFactory(closureClass);
     }
 
+    @Override
+    @SuppressWarnings("deprecation")
     public <T> T newClosure(Class<? extends T> closureClass, T instance) {
-        NativeClosureFactory<T> factory = factories.get(closureClass);
+        @SuppressWarnings("unchecked")
+        NativeClosureFactory<T> factory = (NativeClosureFactory<T>) factories.get(closureClass);
         if (factory != null) {
             //return factory.newClosure(instance);
         }
         return null;
     }
 
+    @Override
     public final <T> jnr.ffi.Pointer getClosurePointer(Class<? extends T> closureClass, T instance) {
         return getClosureFactory(closureClass).getClosureReference(instance).getPointer();
     }
 
-    synchronized <T> NativeClosureFactory<T> initClosureFactory(Class<T> closureClass) {
-        NativeClosureFactory<T> factory = factories.get(closureClass);
-        if (factory != null) {
-            return factory;
-        }
-
-
-        factory = NativeClosureFactory.newClosureFactory(runtime, closureClass, typeMapper, classLoader);
-        Map<Class<?>, NativeClosureFactory> factories = new IdentityHashMap<Class<?>, NativeClosureFactory>();
-        factories.putAll(this.factories);
-        factories.put(closureClass, factory);
-        this.factories = factories;
-
-        return factory;
+    <T> NativeClosureFactory<T> initClosureFactory(Class<T> closureClass) {
+        NativeClosureFactory<T> factory = NativeClosureFactory.newClosureFactory(runtime, closureClass, typeMapper, classLoader);
+        @SuppressWarnings("unchecked")
+        NativeClosureFactory<T> old = (NativeClosureFactory<T>) factories.putIfAbsent(closureClass, factory);
+        return old != null ? old : factory;
     }
 
     <T> ToNativeConverter<T, Pointer> newClosureSite(Class<T> closureClass) {
@@ -90,6 +86,7 @@ final class NativeClosureManager implements ClosureManager {
             this.factory = factory;
         }
 
+        @Override
         public Pointer toNative(T value, ToNativeContext context) {
             if (value == null) {
                 return null;

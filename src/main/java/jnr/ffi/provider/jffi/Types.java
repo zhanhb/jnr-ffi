@@ -29,6 +29,7 @@ import java.lang.ref.Reference;
 import java.lang.ref.SoftReference;
 import java.nio.Buffer;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
@@ -52,14 +53,13 @@ class Types {
         if (type != null) {
             return type;
         }
-        cache = new HashMap<Class<?>, Map<Collection<Annotation>, Type>>(cache != null ? cache : Collections.<Class<?>, Map<Collection<Annotation>, Type>>emptyMap());
-        
         aliasCache = new HashMap<Collection<Annotation>, Type>(aliasCache != null ? aliasCache : Collections.<Collection<Annotation>, Type>emptyMap());
         aliasCache.put(annotations, type = lookupType(runtime, javaType, annotations));
+        if (cache == null) {
+            cache = new ConcurrentHashMap<Class<?>, Map<Collection<Annotation>, Type>>();
+        }
         cache.put(javaType, Collections.unmodifiableMap(aliasCache));
-
-        typeCacheReference = new SoftReference<Map<Class<?>, Map<Collection<Annotation>, Type>>>(Collections.unmodifiableMap(new IdentityHashMap<Class<?>, Map<Collection<Annotation>, Type>>(cache)));
-        
+        typeCacheReference = new SoftReference<Map<Class<?>, Map<Collection<Annotation>, Type>>>(cache);
         return type;
     }
     
@@ -91,6 +91,9 @@ class Types {
 
         } else if (short.class == unwrap) {
             return runtime.findType(NativeType.SSHORT);
+
+        } else if (char.class == unwrap) {
+            return runtime.findType(NativeType.USHORT);
 
         } else if (int.class == unwrap) {
             return runtime.findType(NativeType.SINT);

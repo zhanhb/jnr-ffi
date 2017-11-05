@@ -34,7 +34,7 @@ import static jnr.ffi.provider.jffi.Util.getBooleanProperty;
 /**
  *
  */
-public class FastLongMethodGenerator extends AbstractFastNumericMethodGenerator {
+class FastLongMethodGenerator extends AbstractFastNumericMethodGenerator {
     private static final boolean ENABLED = getBooleanProperty("jnr.ffi.fast-long.enabled", true);
     private static final int MAX_PARAMETERS = getMaximumFastLongParameters();
     private static final String[] signatures;
@@ -113,7 +113,7 @@ public class FastLongMethodGenerator extends AbstractFastNumericMethodGenerator 
         return isFastLongResult(platform, resultType);
     }
 
-    static int getMaximumFastLongParameters() {
+    private static int getMaximumFastLongParameters() {
         try {
             com.kenai.jffi.Invoker.class.getDeclaredMethod("invokeL6", CallContext.class, long.class,
                     long.class, long.class, long.class, long.class, long.class, long.class);
@@ -130,14 +130,14 @@ public class FastLongMethodGenerator extends AbstractFastNumericMethodGenerator 
             || type.getNativeType() == NativeType.SLONGLONG || type.getNativeType() == NativeType.ULONGLONG;
     }
 
-    static boolean isFastLongResult(Platform platform, ResultType resultType) {
+    private static boolean isFastLongResult(Platform platform, ResultType resultType) {
         return isFastLongType(platform, resultType)
                 || resultType.getNativeType() == NativeType.VOID
                 || (resultType.getNativeType() == NativeType.ADDRESS && sizeof(NativeType.ADDRESS) == 8)
                 ;
     }
 
-    static boolean isFastLongParameter(Platform platform, ParameterType type) {
+    private static boolean isFastLongParameter(Platform platform, ParameterType type) {
         return isFastLongType(platform, type);
     }
 }

@@ -22,7 +22,6 @@ import com.kenai.jffi.CallContext;
 import com.kenai.jffi.Closure;
 import com.kenai.jffi.ClosureMagazine;
 import com.kenai.jffi.ClosureManager;
-import jnr.ffi.Pointer;
 import jnr.ffi.annotations.Delegate;
 import jnr.ffi.mapper.SignatureTypeMapper;
 import jnr.ffi.provider.FromNativeType;
@@ -31,9 +30,9 @@ import jnr.ffi.util.ref.FinalizableWeakReference;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
+import jnr.ffi.Pointer;
 
 import static jnr.ffi.provider.jffi.ClosureUtil.getParameterType;
 import static jnr.ffi.provider.jffi.ClosureUtil.getResultType;
@@ -45,7 +44,7 @@ import static jnr.ffi.provider.jffi.InvokerUtil.getNativeCallingConvention;
  */
 public final class NativeClosureFactory<T> {
     private final jnr.ffi.Runtime runtime;
-    private final ConcurrentMap<Integer, ClosureReference> closures = new ConcurrentHashMap<Integer, ClosureReference>();
+    private final ConcurrentMap<Object, ClosureReference> closures = new ConcurrentWeakIdentityHashMap<Object, ClosureReference>();
     private final CallContext callContext;
     private final NativeClosureProxy.Factory closureProxyFactory;
     private final ConcurrentLinkedQueue<NativeClosurePointer> freeQueue = new ConcurrentLinkedQueue<NativeClosurePointer>();
@@ -64,8 +63,8 @@ public final class NativeClosureFactory<T> {
 
         Method callMethod = null;
         for (Method m : closureClass.getMethods()) {
-            if (m.isAnnotationPresent(Delegate.class) && Modifier.isPublic(m.getModifiers())
-                    && !Modifier.isStatic(m.getModifiers())) {
+            if (m.isAnnotationPresent(Delegate.class)
+                    && (m.getModifiers() & (Modifier.PUBLIC | Modifier.STATIC)) == Modifier.PUBLIC) {
                 callMethod = m;
                 break;
             }
@@ -85,56 +84,24 @@ public final class NativeClosureFactory<T> {
                 NativeClosureProxy.newProxyFactory(runtime, callMethod, resultType, parameterSigTypes, classLoader));
     }
 
-    private void expunge(ClosureReference ref, Integer key) {
-        // Fast case - no chained elements; can just remove from the hash map
-        if (ref.next == null && closures.remove(key, ref)) {
-            return;
-        }
-
-        // Remove from chained list
-        synchronized (closures) {
-            for (ClosureReference clref = closures.get(key), prev = clref; clref != null; prev = clref, clref = clref.next) {
-                if (clref == ref) {
-                    if (prev != clref) {
-                        // if not first element in list, just remove this one
-                        prev.next = clref.next;
-
-                    } else {
-                        // first element in list, replace with the next if non-null, else remove from map
-                        if (clref.next != null) {
-                            closures.replace(key, clref, clref.next);
-                        } else {
-                            closures.remove(key, clref);
-                        }
-                    }
-                    break;
-                }
-            }
-        }
-    }
-
     private void recycle(NativeClosurePointer ptr) {
         freeQueue.add(ptr);
     }
 
-    final class ClosureReference extends FinalizableWeakReference<Object> {
-        volatile ClosureReference next;
-        private final NativeClosureFactory factory;
+    static final class ClosureReference extends FinalizableWeakReference<Object> {
+        private final NativeClosureFactory<?> factory;
         private final NativeClosurePointer pointer;
-        private final Integer key;
 
 
-        private ClosureReference(Object referent, Integer key, NativeClosureFactory factory,
-                                 NativeClosurePointer pointer) {
+        private ClosureReference(Object referent, NativeClosureFactory<?> factory, NativeClosurePointer pointer) {
             super(referent, NativeFinalizer.getInstance().getFinalizerQueue());
             this.factory = factory;
-            this.key = key;
             this.pointer = pointer;
         }
 
+        @Override
         public void finalizeReferent() {
             clear();
-            factory.expunge(this, key);
             factory.recycle(pointer);
         }
 
@@ -147,7 +114,7 @@ public final class NativeClosureFactory<T> {
         }
     }
 
-    NativeClosurePointer allocateClosurePointer() {
+    private NativeClosurePointer allocateClosurePointer() {
         NativeClosurePointer closurePointer = freeQueue.poll();
         if (closurePointer != null) {
             return closurePointer;
@@ -168,53 +135,21 @@ public final class NativeClosureFactory<T> {
         return new NativeClosurePointer(runtime, closureHandle, proxy);
     }
 
-    NativeClosurePointer newClosure(Object callable, Integer key) {
-        return newClosureReference(callable, key).pointer;
-    }
-
-    ClosureReference newClosureReference(Object callable, Integer key) {
+    private ClosureReference newClosureReference(Object callable) {
 
         NativeClosurePointer ptr = allocateClosurePointer();
-        ClosureReference ref = new ClosureReference(callable, key, this, ptr);
+        ClosureReference ref = new ClosureReference(callable, this, ptr);
         ptr.proxy.closureReference = ref;
-        if (closures.putIfAbsent(key, ref) == null) {
-            return ref;
-        }
-
-        synchronized (closures) {
-            do {
-                // prepend and make new pointer the list head
-                ref.next = closures.get(key);
-
-                // If old value already removed (e.g. by expunge), just put the new value in
-                if (ref.next == null && closures.putIfAbsent(key, ref) == null) {
-                    break;
-                }
-            } while (!closures.replace(key, ref.next, ref));
-        }
-
-        return ref;
+        ClosureReference old = closures.putIfAbsent(callable, ref);
+        return old == null ? ref : old;
     }
 
     ClosureReference getClosureReference(Object callable) {
-        Integer key = System.identityHashCode(callable);
-        ClosureReference ref = closures.get(key);
+        ClosureReference ref = closures.get(callable);
         if (ref != null) {
-            // Simple case - no identity hash code clash - just return the ptr
-            if (ref.getCallable() == callable) {
-                return ref;
-            }
-
-            // There has been a key clash, search the list
-            synchronized (closures) {
-                while ((ref = ref.next) != null) {
-                    if (ref.getCallable() == callable) {
-                        return ref;
-                    }
-                }
-            }
+            return ref;
         }
 
-        return newClosureReference(callable, key);
+        return newClosureReference(callable);
     }
 }

@@ -23,12 +23,8 @@ import jnr.ffi.Runtime;
 import jnr.ffi.Struct;
 import jnr.ffi.mapper.FromNativeContext;
 import jnr.ffi.mapper.FromNativeConverter;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Label;
 
-import java.io.PrintWriter;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
@@ -91,18 +87,16 @@ abstract public class AsmStructByReferenceFromNativeConverter implements FromNat
         }
 
 
-        ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
-        ClassVisitor cv = AsmLibraryLoader.DEBUG ? AsmUtil.newCheckClassAdapter(cw) : cw;
+        ClassWriter cv = ClassWriter.newInstance();
 
         final String className = p(structClass) + "$$jnr$$StructByReferenceFromNativeConverter$$" + nextClassID.getAndIncrement();
 
-        cv.visit(V1_5, ACC_PUBLIC | ACC_FINAL, className, null, p(AsmStructByReferenceFromNativeConverter.class),
-                new String[0]);
+        cv.visit(V1_5, ACC_PUBLIC | ACC_FINAL, className, null, p(AsmStructByReferenceFromNativeConverter.class), null);
 
         cv.visitAnnotation(ci(FromNativeConverter.NoContext.class), true);
 
         // Create the constructor to set the instance fields
-        SkinnyMethodAdapter init = new SkinnyMethodAdapter(cv, ACC_PUBLIC, "<init>", sig(void.class, jnr.ffi.Runtime.class, int.class), null, null);
+        SkinnyMethodAdapter init = cv.visitMethod(ACC_PUBLIC, "<init>", sig(void.class, jnr.ffi.Runtime.class, int.class), null, null);
         init.start();
         // Invoke the super class constructor as super(Library)
         init.aload(0);
@@ -113,7 +107,7 @@ abstract public class AsmStructByReferenceFromNativeConverter implements FromNat
         init.visitMaxs(10, 10);
         init.visitEnd();
 
-        SkinnyMethodAdapter fromNative = new SkinnyMethodAdapter(cv, ACC_PUBLIC | ACC_FINAL, "fromNative",
+        SkinnyMethodAdapter fromNative = cv.visitMethod(ACC_PUBLIC | ACC_FINAL, "fromNative",
                 sig(structClass, Pointer.class, FromNativeContext.class), null, null);
 
         fromNative.start();
@@ -142,7 +136,7 @@ abstract public class AsmStructByReferenceFromNativeConverter implements FromNat
         fromNative.visitMaxs(10, 10);
         fromNative.visitEnd();
 
-        fromNative = new SkinnyMethodAdapter(cv, ACC_PUBLIC | ACC_FINAL, "fromNative",
+        fromNative = cv.visitMethod(ACC_PUBLIC | ACC_FINAL, "fromNative",
                 sig(Object.class, Object.class, FromNativeContext.class), null, null);
         fromNative.start();
         fromNative.aload(0);
@@ -157,13 +151,7 @@ abstract public class AsmStructByReferenceFromNativeConverter implements FromNat
         cv.visitEnd();
 
         try {
-            byte[] bytes = cw.toByteArray();
-            if (AsmLibraryLoader.DEBUG) {
-                ClassVisitor trace = AsmUtil.newTraceClassVisitor(new PrintWriter(System.err));
-                new ClassReader(bytes).accept(trace, 0);
-            }
-
-            return classLoader.defineClass(className.replace("/", "."), bytes).asSubclass(AsmStructByReferenceFromNativeConverter.class);
+            return classLoader.defineClass(className.replace("/", "."), cv.toByteArray()).asSubclass(AsmStructByReferenceFromNativeConverter.class);
         } catch (Throwable ex) {
             throw new RuntimeException(ex);
         }

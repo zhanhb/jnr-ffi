@@ -22,12 +22,8 @@ import jnr.ffi.NativeType;
 import jnr.ffi.Pointer;
 import jnr.ffi.provider.FromNativeType;
 import jnr.ffi.provider.ToNativeType;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Type;
 
-import java.io.PrintWriter;
 import java.lang.ref.Reference;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
@@ -85,14 +81,13 @@ public abstract class NativeClosureProxy {
         }
     }
 
-    public final static boolean DEBUG = Boolean.getBoolean("jnr.ffi.compile.dump");
     private static final AtomicLong nextClassID = new AtomicLong(0);
 
     static Factory newProxyFactory(jnr.ffi.Runtime runtime, Method callMethod,
                             ToNativeType resultType, FromNativeType[] parameterTypes, AsmClassLoader classLoader) {
         final String closureProxyClassName = p(NativeClosureProxy.class) + "$$impl$$" + nextClassID.getAndIncrement();
-        final ClassWriter closureClassWriter = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
-        final ClassVisitor closureClassVisitor = DEBUG ? AsmUtil.newCheckClassAdapter(closureClassWriter) : closureClassWriter;
+        ClassWriter closureClassVisitor = ClassWriter.newInstance();
+
         AsmBuilder builder = new AsmBuilder(runtime, closureProxyClassName, closureClassVisitor, classLoader);
 
         closureClassVisitor.visit(V1_6, ACC_PUBLIC | ACC_FINAL, closureProxyClassName, null, p(NativeClosureProxy.class),
@@ -105,7 +100,7 @@ public abstract class NativeClosureProxy {
 
         Class<?> nativeResultClass = getNativeClass(resultType.getNativeType());
 
-        SkinnyMethodAdapter mv = new SkinnyMethodAdapter(closureClassVisitor, ACC_PUBLIC | ACC_FINAL, "invoke",
+        SkinnyMethodAdapter mv = closureClassVisitor.visitMethod(ACC_PUBLIC | ACC_FINAL, "invoke",
                 sig(nativeResultClass, nativeParameterClasses),
                 null, null);
         mv.start();
@@ -161,11 +156,11 @@ public abstract class NativeClosureProxy {
             }
         }
 
-        emitReturnOp(mv, nativeResultClass);
+        mv.visitInsn(Type.getType(nativeResultClass).getOpcode(IRETURN));
         mv.visitMaxs(10, 10 + localVariableAllocator.getSpaceUsed());
         mv.visitEnd();
 
-        SkinnyMethodAdapter closureInit = new SkinnyMethodAdapter(closureClassVisitor, ACC_PUBLIC, "<init>",
+        SkinnyMethodAdapter closureInit = closureClassVisitor.visitMethod(ACC_PUBLIC, "<init>",
                 sig(void.class, NativeRuntime.class, Object[].class),
                 null, null);
         closureInit.start();
@@ -178,19 +173,20 @@ public abstract class NativeClosureProxy {
         for (int i = 0; i < fieldObjects.length; i++) {
             fieldObjects[i] = fields[i].value;
             String fieldName = fields[i].name;
-            builder.getClassVisitor().visitField(ACC_PRIVATE | ACC_FINAL, fieldName, ci(fields[i].klass), null, null);
+            Class<?> klass = fields[i].klass;
+            builder.getClassVisitor().visitField(ACC_PRIVATE | ACC_FINAL, fieldName, ci(klass), null, null);
             closureInit.aload(0);
             closureInit.aload(2);
             closureInit.pushInt(i);
             closureInit.aaload();
-            if (fields[i].klass.isPrimitive()) {
-                Class<?> unboxedType = unboxedType(fields[i].klass);
-                closureInit.checkcast(unboxedType);
-                unboxNumber(closureInit, unboxedType, fields[i].klass);
+            if (klass.isPrimitive()) {
+                Class<?> wrap = Primitives.wrap(klass);
+                closureInit.checkcast(wrap);
+                mv.invokevirtual(Type.getInternalName(wrap), klass + "Value", Type.getMethodDescriptor(Type.getType(klass)));
             } else {
-                closureInit.checkcast(fields[i].klass);
+                closureInit.checkcast(klass);
             }
-            closureInit.putfield(builder.getClassNamePath(), fieldName, ci(fields[i].klass));
+            closureInit.putfield(builder.getClassNamePath(), fieldName, ci(klass));
         }
 
         closureInit.voidreturn();
@@ -200,24 +196,15 @@ public abstract class NativeClosureProxy {
         closureClassVisitor.visitEnd();
 
         try {
-            byte[] closureImpBytes = closureClassWriter.toByteArray();
-            if (DEBUG) {
-                ClassVisitor trace = AsmUtil.newTraceClassVisitor(new PrintWriter(System.err));
-                new ClassReader(closureImpBytes).accept(trace, 0);
-            }
-            ClassLoader cl = NativeClosureFactory.class.getClassLoader();
-            if (cl == null) {
-                cl = Thread.currentThread().getContextClassLoader();
-            }
-            if (cl == null) {
-                cl = ClassLoader.getSystemClassLoader();
-            }
-            Class<? extends NativeClosureProxy> klass = builder.getClassLoader().defineClass(c(closureProxyClassName), closureImpBytes).asSubclass(NativeClosureProxy.class);
+            byte[] closureImpBytes = closureClassVisitor.toByteArray();
+            Class<? extends NativeClosureProxy> klass = builder.getClassLoader().defineClass(c(closureProxyClassName), closureImpBytes)
+                    .asSubclass(NativeClosureProxy.class);
             Constructor<? extends NativeClosureProxy> constructor = null;
             try {
                 constructor = klass.getConstructor(NativeRuntime.class, Object[].class);
             } catch(NoSuchMethodException e) {
-                constructor = (Constructor<? extends NativeClosureProxy>) klass.getConstructors()[0];
+                // impossible
+                throw new AssertionError(e);
             }
 
             return new Factory(runtime, constructor, klass.getMethod("invoke", nativeParameterClasses), fieldObjects);

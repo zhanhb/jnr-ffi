@@ -115,10 +115,14 @@ class X86MethodGenerator implements MethodGenerator {
             nativeReturnType = getNativeClass(resultType.getNativeType());
         }
 
-        String stubName = functionName + (wrapperNeeded ? "$jni$" + nextMethodID.incrementAndGet() : "");
+        String stubName = functionName;
+        int access = ACC_PUBLIC | ACC_FINAL | ACC_NATIVE;
+        if (wrapperNeeded) {
+            stubName = functionName + "$jni$" + nextMethodID.incrementAndGet();
+            access |= ACC_STATIC;
+        }
 
-        builder.getClassVisitor().visitMethod(ACC_PUBLIC | ACC_FINAL | ACC_NATIVE | (wrapperNeeded ? ACC_STATIC : 0),
-                stubName, sig(nativeReturnType, nativeParameterTypes), null, null);
+        builder.getClassVisitor().visitMethod(access, stubName, sig(nativeReturnType, nativeParameterTypes), null, null);
 
         compiler.compile(function, stubName, resultType, parameterTypes, nativeReturnType, nativeParameterTypes,
                 CallingConvention.DEFAULT, !ignoreError);
@@ -138,10 +142,8 @@ class X86MethodGenerator implements MethodGenerator {
             javaParameterTypes[i] = parameterTypes[i].getDeclaredType();
         }
 
-        final SkinnyMethodAdapter mv = new SkinnyMethodAdapter(builder.getClassVisitor(),
-                ACC_PUBLIC | ACC_FINAL,
+        final SkinnyMethodAdapter mv = builder.getClassVisitor().visitMethod(ACC_PUBLIC | ACC_FINAL,
                 functionName, sig(resultType.getDeclaredType(), javaParameterTypes), null, null);
-        mv.setMethodVisitor(AsmUtil.newTraceMethodVisitor(mv.getMethodVisitor()));
         mv.start();
 
 

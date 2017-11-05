@@ -22,6 +22,14 @@ package jnr.ffi.provider;
  *
  */
 public interface ClosureManager {
+    /**
+     * the implements always returns null
+     * @param closureClass
+     * @param instance
+     * @param <T>
+     * @return
+     */
+    @Deprecated
     public abstract <T> T newClosure(Class<? extends T> closureClass, T instance);
     public abstract <T> jnr.ffi.Pointer getClosurePointer(Class<? extends T> closureClass, T instance);
 }

@@ -26,11 +26,7 @@ import jnr.ffi.mapper.*;
 import jnr.ffi.provider.InAccessibleMemoryIO;
 import jnr.ffi.provider.ParameterType;
 import jnr.ffi.provider.ResultType;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.ClassWriter;
 
-import java.io.PrintWriter;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.concurrent.atomic.AtomicLong;
@@ -94,8 +90,7 @@ abstract public class ClosureFromNativeConverter implements FromNativeConverter<
     private static FromNativeConverter<?, Pointer> newClosureConverter(jnr.ffi.Runtime runtime, AsmClassLoader classLoader, Class<?> closureClass,
                                                                         SignatureTypeMapper typeMapper) {
 
-        ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
-        ClassVisitor cv = AsmLibraryLoader.DEBUG ? AsmUtil.newCheckClassAdapter(cw) : cw;
+        ClassWriter cv = ClassWriter.newInstance();
 
         final String className = p(closureClass) + "$jnr$fromNativeConverter$" + nextClassID.getAndIncrement();
         AsmBuilder builder = new AsmBuilder(runtime, className, cv, classLoader);
@@ -108,7 +103,7 @@ abstract public class ClosureFromNativeConverter implements FromNativeConverter<
         generateInvocation(runtime, builder, closureClass, typeMapper);
 
         // Create the constructor to set the instance fields
-        SkinnyMethodAdapter init = new SkinnyMethodAdapter(cv, ACC_PUBLIC, "<init>",
+        SkinnyMethodAdapter init = cv.visitMethod(ACC_PUBLIC, "<init>",
                 sig(void.class, jnr.ffi.Runtime.class, long.class, Object[].class), null, null);
         init.start();
         // Invoke the super class constructor as super(functionAddress)
@@ -121,7 +116,7 @@ abstract public class ClosureFromNativeConverter implements FromNativeConverter<
         init.visitMaxs(10, 10);
         init.visitEnd();
 
-        Class<?> implClass = loadClass(classLoader, className, cw);
+        Class<?> implClass = loadClass(classLoader, className, cv);
         try {
             return new ProxyConverter(runtime, implClass.getConstructor(jnr.ffi.Runtime.class, long.class, Object[].class), builder.getObjectFieldValues());
         } catch (Throwable ex) {
@@ -132,11 +127,6 @@ abstract public class ClosureFromNativeConverter implements FromNativeConverter<
     private static Class<?> loadClass(AsmClassLoader classLoader, String className, ClassWriter cw) {
         try {
             byte[] bytes = cw.toByteArray();
-            if (AsmLibraryLoader.DEBUG) {
-                ClassVisitor trace = AsmUtil.newTraceClassVisitor(new PrintWriter(System.err));
-                new ClassReader(bytes).accept(trace, 0);
-            }
-
             return classLoader.defineClass(className.replace("/", "."), bytes);
         } catch (Throwable ex) {
             throw new RuntimeException(ex);
@@ -167,7 +157,7 @@ abstract public class ClosureFromNativeConverter implements FromNativeConverter<
             javaParameterTypes[i] = parameterTypes[i].getDeclaredType();
         }
 
-        SkinnyMethodAdapter mv = new SkinnyMethodAdapter(builder.getClassVisitor(), ACC_PUBLIC | ACC_FINAL,
+        SkinnyMethodAdapter mv = builder.getClassVisitor().visitMethod(ACC_PUBLIC | ACC_FINAL,
                 closureMethod.getName(),
                 sig(resultType.getDeclaredType(), javaParameterTypes), null, null);
         mv.start();

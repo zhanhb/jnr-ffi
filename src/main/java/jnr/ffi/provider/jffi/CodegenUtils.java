@@ -21,7 +21,6 @@ package jnr.ffi.provider.jffi;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.Type;
 
-import java.util.Arrays;
 import java.util.Map;
 
 public class CodegenUtils {
@@ -66,16 +65,6 @@ public class CodegenUtils {
     }
 
     /**
-     * Creates a human-readable representation, from a Class.
-     *
-     * @param n A class.
-     * @return A human-readable representation.
-     */
-    public static String human(Class<?> n) {
-        return n.getCanonicalName();
-    }
-    
-    /**
      * Create a method signature from the given param types and return values.
      *
      * @param retval The return value class.
@@ -93,8 +82,8 @@ public class CodegenUtils {
     public static String sigParams(Class<?>... params) {
         StringBuilder signature = new StringBuilder("(");
         
-        for (int i = 0; i < params.length; i++) {
-            signature.append(ci(params[i]));
+        for (Class<?> param : params) {
+            signature.append(ci(param));
         }
         
         signature.append(")");
@@ -107,59 +96,13 @@ public class CodegenUtils {
 
         signature.append(descriptor);
         
-        for (int i = 0; i < params.length; i++) {
-            signature.append(ci(params[i]));
+        for (Class<?> param : params) {
+            signature.append(ci(param));
         }
 
         signature.append(")");
 
         return signature.toString();
-    }
-    
-    public static String pretty(Class<?> retval, Class<?>... params) {
-        return prettyParams(params) + human(retval);
-    }
-    
-    public static String prettyParams(Class<?>... params) {
-        StringBuilder signature = new StringBuilder("(");
-        
-        for (int i = 0; i < params.length; i++) {
-            signature.append(human(params[i]));
-            if (i < params.length - 1) signature.append(',');
-        }
-        
-        signature.append(")");
-        
-        return signature.toString();
-    }
-    
-    public static <T> Class<T>[] params(Class<T>... classes) {
-        return classes;
-    }
-    
-    public static <T> Class<T>[] params(Class<T> cls, int times) {
-        @SuppressWarnings({"unchecked", "rawtypes"})
-        Class<T>[] classes = new Class[times];
-        Arrays.fill(classes, cls);
-        return classes;
-    }
-    
-    public static Class<?>[] params(Class<?> cls1, Class<?> clsFill, int times) {
-        Class<?>[] classes = new Class<?>[times + 1];
-        Arrays.fill(classes, clsFill);
-        classes[0] = cls1;
-        return classes;
-    }
-    
-    public static String getAnnotatedBindingClassName(String javaMethodName, String typeName, boolean isStatic, int required, int optional, boolean multi, boolean framed) {
-        String commonClassSuffix;
-        String marker = framed ? "$RUBYFRAMEDINVOKER$" : "$RUBYINVOKER$";
-        if (multi) {
-            commonClassSuffix = (isStatic ? "$s" : "$i" ) + "_method_multi" + marker + javaMethodName;
-        } else {
-            commonClassSuffix = (isStatic ? "$s" : "$i" ) + "_method_" + required + "_" + optional + marker + javaMethodName;
-        }
-        return typeName + commonClassSuffix;
     }
 
     public static void visitAnnotationFields(AnnotationVisitor visitor, Map<String, Object> fields) {
@@ -168,12 +111,12 @@ public class CodegenUtils {
             if (value.getClass().isArray()) {
                 Object[] values = (Object[]) value;
                 AnnotationVisitor arrayV = visitor.visitArray(fieldEntry.getKey());
-                for (int i = 0; i < values.length; i++) {
-                    arrayV.visit(null, values[i]);
+                for (Object value1 : values) {
+                    arrayV.visit(null, value1);
                 }
                 arrayV.visitEnd();
             } else if (value.getClass().isEnum()) {
-                visitor.visitEnum(fieldEntry.getKey(), ci(value.getClass()), value.toString());
+                visitor.visitEnum(fieldEntry.getKey(), ci(value.getClass()), Enum.class.cast(value).name());
             } else if (value instanceof Class) {
                 visitor.visit(fieldEntry.getKey(), Type.getType((Class)value));
             } else {

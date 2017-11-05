@@ -24,6 +24,7 @@ import jnr.ffi.annotations.StdCall;
 import jnr.ffi.mapper.SignatureTypeMapper;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.AbstractCollection;
 import java.util.Collection;
 import java.util.Iterator;
@@ -45,7 +46,7 @@ public class InterfaceScanner {
         return new AbstractCollection<NativeFunction>() {
             @Override
             public Iterator<NativeFunction> iterator() {
-                return new FunctionsIterator(methods);
+                return new FunctionsIterator(methods, callingConvention);
             }
 
             @Override
@@ -68,54 +69,23 @@ public class InterfaceScanner {
             }
         };
     }
-    
-    private static final Method methodIsDefault;
 
-    static {
-        Method isDefault = null;
-
-        try {
-            isDefault = Method.class.getMethod("isDefault");
-        } catch (NoSuchMethodException e) {
-            // expected for jre < 1.8
-        }
-
-        methodIsDefault = isDefault;
-    }
-
-    private static boolean isDefault(Method method) {
-        if (methodIsDefault == null) {
-            return false;
-        }
-
-        try {
-            return Boolean.TRUE.equals(methodIsDefault.invoke(method));
-        } catch (Exception e) {
-            // e can throw one of:
-            // * IllegalAccessException, but we know isDefault is public.
-            // * InvocationTargetException, but we know isDefault doesn't throw.
-            // but java doesn't let us prove this invariants, so we do this.
-            // And we can't catch ReflectiveOperationException as it was
-            // introduced in Java SE 1.7, so we have to catch the next common
-            // superclass (Exception).
-            throw new RuntimeException("Unexpected error attempting to call isDefault method", e);
-        }
-    }
-
-    private final class FunctionsIterator implements Iterator<NativeFunction> {
+    private static final class FunctionsIterator implements Iterator<NativeFunction> {
         private final java.lang.reflect.Method[] methods;
+        private final CallingConvention defaultConvention;
         private int nextIndex;
 
-        private FunctionsIterator(Method[] methods) {
+        private FunctionsIterator(Method[] methods, CallingConvention callingConvention) {
             this.methods = methods;
             this.nextIndex = 0;
+            this.defaultConvention = callingConvention;
         }
 
         @Override
         public boolean hasNext() {
             for (; nextIndex < methods.length; nextIndex++) {
                 if (!Variable.class.isAssignableFrom(methods[nextIndex].getReturnType())
-                        && !isDefault(methods[nextIndex])) {
+                        && (methods[nextIndex].getModifiers() & Modifier.ABSTRACT) != 0) {
                     return true;
                 }
             }
@@ -127,7 +97,7 @@ public class InterfaceScanner {
         public NativeFunction next() {
             // Allow individual methods to set the calling convention to stdcall
             CallingConvention callingConvention = methods[nextIndex].isAnnotationPresent(StdCall.class)
-                    ? CallingConvention.STDCALL : InterfaceScanner.this.callingConvention;
+                    ? CallingConvention.STDCALL : this.defaultConvention;
             return new NativeFunction(methods[nextIndex++], callingConvention);
         }
 
@@ -137,7 +107,7 @@ public class InterfaceScanner {
         }
     }
 
-    private final class VariablesIterator implements Iterator<NativeVariable> {
+    private static final class VariablesIterator implements Iterator<NativeVariable> {
         private final java.lang.reflect.Method[] methods;
         private int nextIndex;
 

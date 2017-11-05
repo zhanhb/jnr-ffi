@@ -21,6 +21,13 @@ package jnr.ffi.provider.jffi;
 /**
  */
 final class Util {
+    static String getStringProperty(String propertyName, String defaultValue) {
+        try {
+            return System.getProperty(propertyName, defaultValue);
+        } catch (SecurityException ex) {
+            return defaultValue;
+        }
+    }
     static boolean getBooleanProperty(String propertyName, boolean defaultValue) {
         try {
             return Boolean.valueOf(System.getProperty(propertyName, Boolean.valueOf(defaultValue).toString()));

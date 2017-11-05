@@ -22,18 +22,15 @@ import com.kenai.jffi.CallContext;
 import com.kenai.jffi.Function;
 import com.kenai.jffi.ObjectParameterInfo;
 import jnr.ffi.*;
-import jnr.ffi.Runtime;
 import jnr.ffi.mapper.FromNativeContext;
 import jnr.ffi.mapper.FromNativeConverter;
 import jnr.ffi.mapper.ToNativeContext;
 import jnr.ffi.mapper.ToNativeConverter;
-import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.Type;
 
 import java.lang.reflect.Modifier;
 import java.util.*;
 
-import static jnr.ffi.provider.jffi.AsmUtil.boxedType;
-import static jnr.ffi.provider.jffi.AsmUtil.unboxNumber;
 import static jnr.ffi.provider.jffi.CodegenUtils.ci;
 import static org.objectweb.asm.Opcodes.ACC_FINAL;
 import static org.objectweb.asm.Opcodes.ACC_PRIVATE;
@@ -44,7 +41,7 @@ import static org.objectweb.asm.Opcodes.ACC_PRIVATE;
 class AsmBuilder {
     private final jnr.ffi.Runtime runtime;
     private final String classNamePath;
-    private final ClassVisitor classVisitor;
+    private final ClassWriter classVisitor;
     private final AsmClassLoader classLoader;
 
     private final ObjectNameGenerator functionId = new ObjectNameGenerator("functionAddress");
@@ -68,7 +65,7 @@ class AsmBuilder {
     private final Map<Object, ObjectField> genericObjects = new IdentityHashMap<Object, ObjectField>();
     private final List<ObjectField> objectFields = new ArrayList<ObjectField>();
 
-    AsmBuilder(jnr.ffi.Runtime runtime, String classNamePath, ClassVisitor classVisitor, AsmClassLoader classLoader) {
+    AsmBuilder(jnr.ffi.Runtime runtime, String classNamePath, ClassWriter classVisitor, AsmClassLoader classLoader) {
         this.runtime = runtime;
         this.classNamePath = classNamePath;
         this.classVisitor = classVisitor;
@@ -79,7 +76,7 @@ class AsmBuilder {
         return classNamePath;
     }
 
-    ClassVisitor getClassVisitor() {
+    ClassWriter getClassVisitor() {
         return classVisitor;
     }
 
@@ -130,14 +127,6 @@ class AsmBuilder {
 
     ObjectField getRuntimeField() {
         return getObjectField(runtime, runtime.getClass());
-    }
-
-    String getFromNativeConverterName(FromNativeConverter<?, ?> converter) {
-        return getFromNativeConverterField(converter).name;
-    }
-
-    String getToNativeConverterName(ToNativeConverter<?, ?> converter) {
-        return getToNativeConverterField(converter).name;
     }
 
     private static Class<?> nearestClass(Object obj, Class<?> defaultClass) {
@@ -212,9 +201,11 @@ class AsmBuilder {
             init.aaload();
 
             if (f.klass.isPrimitive()) {
-                Class<?> boxedType = boxedType(f.klass);
-                init.checkcast(boxedType);
-                unboxNumber(init, boxedType, f.klass);
+                Class<?> primitive = f.klass;
+                Class<?> wrap = Primitives.wrap(primitive);
+                String description = Type.getMethodDescriptor(Type.getType(primitive));
+                init.checkcast(wrap);
+                init.invokevirtual(Type.getInternalName(wrap), primitive + "Value", description);
             } else {
                 init.checkcast(f.klass);
             }

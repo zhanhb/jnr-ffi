@@ -19,7 +19,6 @@
 package jnr.ffi.provider.jffi;
 
 import com.kenai.jffi.*;
-import jnr.ffi.NativeType;
 import jnr.ffi.Pointer;
 import jnr.ffi.provider.ParameterType;
 import jnr.ffi.provider.ResultType;
@@ -184,6 +183,9 @@ abstract class AbstractFastNumericMethodGenerator extends BaseMethodGenerator {
     }
 
     static boolean hasPointerParameterStrategy(Class<?> javaType) {
+        if (STRATEGY_PARAMETER_TYPES.containsKey(javaType)) {
+            return true;
+        }
         for (Class<?> c : STRATEGY_PARAMETER_TYPES.keySet()) {
             if (c.isAssignableFrom(javaType)) {
                 return true;
@@ -195,6 +197,11 @@ abstract class AbstractFastNumericMethodGenerator extends BaseMethodGenerator {
     }
 
     static Class<? extends ObjectParameterStrategy<?>> emitParameterStrategyLookup(SkinnyMethodAdapter mv, Class<?> javaParameterType) {
+        Class<? extends ObjectParameterStrategy<?>> value = STRATEGY_PARAMETER_TYPES.get(javaParameterType);
+        if (value != null) {
+            mv.invokestatic(AsmRuntime.class, "pointerParameterStrategy", value, javaParameterType);
+            return value;
+        }
         for (Map.Entry<Class<?>, Class<? extends ObjectParameterStrategy<?>>> e : STRATEGY_PARAMETER_TYPES.entrySet()) {
             if (e.getKey().isAssignableFrom(javaParameterType)) {
                 mv.invokestatic(AsmRuntime.class, "pointerParameterStrategy", e.getValue(), e.getKey());

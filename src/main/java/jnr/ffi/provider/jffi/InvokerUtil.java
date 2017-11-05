@@ -21,14 +21,10 @@ package jnr.ffi.provider.jffi;
 import com.kenai.jffi.CallContext;
 import com.kenai.jffi.CallContextCache;
 import com.kenai.jffi.Type;
-import jnr.ffi.CallingConvention;
 import jnr.ffi.LibraryOption;
 import jnr.ffi.NativeType;
-import jnr.ffi.annotations.IgnoreError;
-import jnr.ffi.annotations.SaveError;
 import jnr.ffi.annotations.StdCall;
 import jnr.ffi.mapper.*;
-import jnr.ffi.provider.NativeFunction;
 import jnr.ffi.provider.ParameterType;
 import jnr.ffi.provider.ResultType;
 import jnr.ffi.provider.SigType;
@@ -117,10 +113,6 @@ final class InvokerUtil {
         return fromNativeType != null ? ConverterMetaData.getAnnotations(fromNativeType.getFromNativeConverter()) : Annotations.EMPTY_ANNOTATIONS;
     }
 
-    static Collection<Annotation> getAnnotations(jnr.ffi.mapper.ToNativeType toNativeType) {
-        return toNativeType != null ? ConverterMetaData.getAnnotations(toNativeType.getToNativeConverter()) : Annotations.EMPTY_ANNOTATIONS;
-    }
-
     static ResultType getResultType(jnr.ffi.Runtime runtime, Class<?> type, Collection<Annotation> annotations,
                                     FromNativeConverter<?, ?> fromNativeConverter, FromNativeContext fromNativeContext) {
         Collection<Annotation> converterAnnotations = ConverterMetaData.getAnnotations(fromNativeConverter);
@@ -144,14 +136,6 @@ final class InvokerUtil {
 
     private static ParameterType getParameterType(jnr.ffi.Runtime runtime, Class<?> type, Collection<Annotation> annotations,
                                           ToNativeConverter<?, ?> toNativeConverter, ToNativeContext toNativeContext) {
-        NativeType nativeType = getMethodParameterNativeType(runtime,
-                toNativeConverter != null ? toNativeConverter.nativeType() : type, annotations);
-        return new ParameterType(type, nativeType, annotations, toNativeConverter, toNativeContext);
-    }
-
-    private static ParameterType getParameterType(jnr.ffi.Runtime runtime, Class<?> type, Collection<Annotation> annotations,
-                                                  jnr.ffi.mapper.ToNativeType toNativeType, ToNativeContext toNativeContext) {
-        ToNativeConverter<?, ?> toNativeConverter = toNativeType != null ? toNativeType.getToNativeConverter() : null;
         NativeType nativeType = getMethodParameterNativeType(runtime,
                 toNativeConverter != null ? toNativeConverter.nativeType() : type, annotations);
         return new ParameterType(type, nativeType, annotations, toNativeConverter, toNativeContext);
@@ -198,10 +182,10 @@ final class InvokerUtil {
 
     public static jnr.ffi.CallingConvention getNativeCallingConvention(Method m) {
         if (m.isAnnotationPresent(StdCall.class) || m.getDeclaringClass().isAnnotationPresent(StdCall.class)) {
-            return CallingConvention.STDCALL;
+            return jnr.ffi.CallingConvention.STDCALL;
         }
 
-        return CallingConvention.DEFAULT;
+        return jnr.ffi.CallingConvention.DEFAULT;
     }
 
     

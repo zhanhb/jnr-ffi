@@ -21,7 +21,7 @@ package jnr.ffi.provider.jffi;
 /**
  *
  */
-public final class NullObjectParameterStrategy extends ParameterStrategy {
+public final class NullObjectParameterStrategy extends ParameterStrategy<Object> {
     public static final ParameterStrategy NULL = new NullObjectParameterStrategy();
 
     public NullObjectParameterStrategy() {

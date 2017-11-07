@@ -14,6 +14,10 @@ matrix:
       jdk: oraclejdk8
     - os: linux
       jdk: openjdk7
+    - os: os x
+      env: TEST_TYPE=buffer
+    - os: os x
+      env: TEST_TYPE=buffer32
     - env: TEST_TYPE=all32
     - env: TEST_TYPE=reflection
     - env: TEST_TYPE=x86asm32

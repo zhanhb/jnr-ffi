@@ -20,15 +20,15 @@ package jnr.ffi.provider;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
-import java.util.Collections;
-import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * InvocationHandler used to map invocations on a java interface to the correct native function.
  */
 public class NativeInvocationHandler implements InvocationHandler {
-    private volatile Map<Method, Invoker> fastLookupTable;
+    private final ConcurrentMap<Method, Invoker> fastLookupTable;
     private final Map<Method, Invoker> invokerMap;
 
     /**
@@ -39,27 +39,25 @@ public class NativeInvocationHandler implements InvocationHandler {
      */
     public NativeInvocationHandler(Map<Method, Invoker> invokers) {
         this.invokerMap = invokers;
-        this.fastLookupTable = Collections.emptyMap();
+        this.fastLookupTable = new ConcurrentHashMap<Method, Invoker>();
     }
 
+    @Override
     public Object invoke(Object self, Method method, Object[] argArray) throws Throwable {
-        Invoker invoker = fastLookupTable.get(method);
-        return invoker != null ? invoker.invoke(self, argArray) : lookupAndCacheInvoker(method).invoke(self, argArray);
+        return lookupAndCacheInvoker(method).invoke(self, argArray);
     }
 
-    private synchronized Invoker lookupAndCacheInvoker(Method method) {
-        Invoker invoker;
-        if ((invoker = fastLookupTable.get(method)) != null) {
+    private Invoker lookupAndCacheInvoker(Method method) {
+        Invoker invoker = fastLookupTable.get(method);
+        if (invoker != null) {
             return invoker;
         }
-
-        Map<Method, Invoker> map = new IdentityHashMap<Method, Invoker>(fastLookupTable);
-        map.put(method, invoker = invokerMap.get(method));
+        invoker = invokerMap.get(method);
         if (invoker == null) {
             throw new UnsatisfiedLinkError("no invoker for native method " + method.getName());
         }
-
-        fastLookupTable = map;
-        return invoker;
+        Invoker old = fastLookupTable.putIfAbsent(method, invoker);
+        return old != null ? old : invoker;
     }
+
 }

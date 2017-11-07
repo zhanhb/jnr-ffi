@@ -62,7 +62,6 @@ public class TransientNativeMemory extends DirectMemoryIO {
 
                 // No available pages; trigger a full GC to reclaim some memory
                 System.gc();
-                FinalizableReferenceQueue.cleanUpAll(); 
             } while (true);
             sentinel = new Sentinel();
             magazine = new Magazine(sentinel, pm, memory, PAGES_PER_MAGAZINE);

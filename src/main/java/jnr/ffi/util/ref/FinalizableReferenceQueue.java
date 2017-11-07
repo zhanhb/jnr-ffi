@@ -25,9 +25,6 @@ import java.lang.ref.ReferenceQueue;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.Collections;
-import java.util.Map;
-import java.util.WeakHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -138,9 +135,6 @@ public class FinalizableReferenceQueue implements Closeable {
     startFinalizer = getStartFinalizer(finalizer);
   }
 
-  private static final Map<FinalizableReferenceQueue, Boolean> finalizerQueues
-          = Collections.synchronizedMap(new WeakHashMap<FinalizableReferenceQueue, Boolean>());
-    
   /**
    * The actual reference queue that our background thread will poll.
    */
@@ -345,14 +339,5 @@ public class FinalizableReferenceQueue implements Closeable {
     } catch (NoSuchMethodException e) {
       throw new AssertionError(e);
     }
-  }
-    
-  public static void cleanUpAll() {
-    try {
-      // Iterate over a new array containing all the queues, so we don't risk a concurrent modification exception
-      for (Object frq : finalizerQueues.keySet().toArray()) {
-        ((FinalizableReferenceQueue) frq).cleanUp();
-      }
-    } catch (Throwable t) {}
   }
 }

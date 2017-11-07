@@ -255,7 +255,7 @@ class X86MethodGenerator implements MethodGenerator {
 
             // Convert the result from long/int to the correct return type
             if (float.class == nativeReturnType) {
-                narrow(mv, long.class, int.class);
+                convertPrimitive(mv, long.class, int.class);
                 mv.invokestatic(Float.class, "intBitsToFloat", float.class, int.class);
 
             } else if (double.class == nativeReturnType) {

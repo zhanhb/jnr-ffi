@@ -22,19 +22,35 @@ import jnr.ffi.NativeType;
 import jnr.ffi.provider.SigType;
 import org.objectweb.asm.Label;
 
-public final class NumberUtil {
+final class NumberUtil {
     private NumberUtil() {}
 
-    public static boolean isPrimitiveInt(Class<?> c) {
-        return byte.class == c || char.class == c || short.class == c || int.class == c || boolean.class == c;
+    private static boolean isDecimal(Class<?> cl) {
+        return cl == float.class || cl == double.class;
     }
 
-    public static void widen(SkinnyMethodAdapter mv, Class<?> from, Class<?> to) {
-        if (long.class == to && long.class != from && isPrimitiveInt(from)) {
-            mv.i2l();
-
-        } else if (boolean.class == to && boolean.class != from && isPrimitiveInt(from)) {
-            // Ensure only 0x0 and 0x1 values are used for boolean
+    static void convertPrimitive(SkinnyMethodAdapter mv, final Class<?> from, final Class<?> to) {
+        if (from == to) {
+            return;
+        }
+        if (!from.isPrimitive() || !to.isPrimitive()) {
+            return;
+        }
+        if (from == void.class || to == void.class) {
+            return;
+        }
+        if (isDecimal(from) || isDecimal(to)) {
+            // no type alias for float type yet
+            return;
+        }
+        if (boolean.class == to) {
+            if (long.class == from) {
+                mv.lconst_0();
+                mv.lcmp();
+            }
+            /* Equivalent to
+               return result == 0 ? true : false;
+            */
             Label zero = new Label();
             Label ret = new Label();
             mv.ifeq(zero);
@@ -43,170 +59,136 @@ public final class NumberUtil {
             mv.label(zero);
             mv.iconst_0();
             mv.label(ret);
-        }
-    }
-
-    public static void narrow(SkinnyMethodAdapter mv, Class<?> from, Class<?> to) {
-        if (from == to) {
-            return;
-        }
-        if (byte.class == to || short.class == to || char.class == to || int.class == to || boolean.class == to) {
-            if (boolean.class == to) {
-                if (long.class == from) {
-                    mv.lconst_0();
-                    mv.lcmp();
-                }
-                /* Equivalent to
-                   return result == 0 ? true : false;
-                */
-                Label zero = new Label();
-                Label ret = new Label();
-                mv.ifeq(zero);
-                mv.iconst_1();
-                mv.go_to(ret);
-                mv.label(zero);
-                mv.iconst_0();
-                mv.label(ret);
-            } else {
-                if (long.class == from) {
-                    mv.l2i();
-                }
-
-                if (byte.class == to) {
-                    mv.i2b();
-
-                } else if (short.class == to) {
-                    mv.i2s();
-
-                } else if (char.class == to) {
-                    mv.i2c();
-
-                }
+        } else if (long.class == to) {
+            mv.i2l();
+        } else {
+            if (long.class == from) {
+                mv.l2i();
+            }
+            if (byte.class == to) {
+                mv.i2b();
+            } else if (short.class == to) {
+                mv.i2s();
+            } else if (char.class == to) {
+                mv.i2c();
             }
         }
     }
-
-    public static void convertPrimitive(SkinnyMethodAdapter mv, final Class<?> from, final Class<?> to) {
-        narrow(mv, from, to);
-        widen(mv, from, to);
-    }
-
 
     public static void convertPrimitive(SkinnyMethodAdapter mv, final Class<?> from, final Class<?> to, final NativeType nativeType) {
+        if (!from.isPrimitive() || !to.isPrimitive()) {
+            return;
+        }
+        switch (nativeType) {
+            case SCHAR:
+            case UCHAR:
+            case SSHORT:
+            case USHORT:
+            case SINT:
+            case UINT:
+            case SLONG:
+            case ULONG:
+            case SLONGLONG:
+            case ULONGLONG:
+            case ADDRESS:
+                break;
+            case FLOAT:
+            case DOUBLE:
+            case VOID:
+            case STRUCT:
+            default:
+                return;
+        }
+        if (to == void.class) {
+            return;
+        }
+        int sizeofNativeType = sizeof(nativeType);
         if (boolean.class == to) {
-            switch (nativeType) {
-                case SCHAR:
-                case UCHAR:
-                case SSHORT:
-                case USHORT:
-                case SINT:
-                case UINT:
-                case SLONG:
-                case ULONG:
-                case ADDRESS:
-                    if (sizeof(nativeType) <= 4) {
-                        narrow(mv, from, int.class);
-                        switch (nativeType) {
-                            // some compiler may not clean higher bits
-                            // https://en.wikipedia.org/wiki/X86_calling_conventions#Microsoft_x64_calling_convention
-                            // Parameters less than 64 bits long are not zero extended; the high bits are not zeroed.
-                            // such as we can still get 0x80000000 from `u_int32_t2u_int8_t(0x80000000)`
-                            case SCHAR:
-                            case UCHAR:
-                                narrow(mv, int.class, byte.class);
-                                break;
-                            case USHORT:
-                            case SSHORT:
-                                narrow(mv, int.class, short.class);
-                                break;
-                        }
-                        narrow(mv, int.class, to);
-                    } else {
-                        narrow(mv, from, to);
-                    }
+            switch (sizeofNativeType) {
+                case 1:
+                    convertPrimitive(mv, from, byte.class);
+                    convertPrimitive(mv, int.class, boolean.class);
                     break;
-                case FLOAT:
-                case DOUBLE:
-                    // TODO
+                case 2:
+                    convertPrimitive(mv, from, short.class);
+                    convertPrimitive(mv, int.class, boolean.class);
                     break;
-                default:
-                    narrow(mv, from, to);
+                case 4:
+                    convertPrimitive(mv, from, int.class);
+                    convertPrimitive(mv, int.class, boolean.class);
+                    break;
+                case 8:
+                    convertPrimitive(mv, from, long.class);
+                    convertPrimitive(mv, long.class, boolean.class);
+                    break;
+                default: // impossible
                     break;
             }
             return;
         }
-
+        int sizeofTo = sizeof(to);
+        if (sizeofTo <= sizeofNativeType) {
+            convertPrimitive(mv, from, to);
+            return;
+        }
+        boolean unsigned = false;
         switch (nativeType) {
-            case SCHAR:
-                narrow(mv, from, byte.class);
-                // maybe to is char.class
-                narrow(mv, byte.class, to);
-                widen(mv, byte.class, to);
-                break;
-
-            case SSHORT:
-                narrow(mv, from, short.class);
-                // `to` may be byte.class
-                narrow(mv, short.class, to);
-                widen(mv, short.class, to);
-                break;
-
-            case SINT:
-                narrow(mv, from, int.class);
-                // `to` may be byte.class
-                narrow(mv, int.class, to);
-                widen(mv, int.class, to);
-                break;
-
             case UCHAR:
-                narrow(mv, from, int.class);
-                mv.pushInt(0xff);
-                mv.iand();
-                // `to` may be byte.class
-                narrow(mv, int.class, to);
-                widen(mv, int.class, to);
-                break;
-
             case USHORT:
-                narrow(mv, from, int.class);
-                mv.pushInt(0xffff);
-                mv.iand();
-                // `to` may be byte.class
-                narrow(mv, int.class, to);
-                widen(mv, int.class, to);
-                break;
-
             case UINT:
             case ULONG:
+            case ULONGLONG:
             case ADDRESS:
-                if (sizeof(nativeType) <= 4) {
-                    narrow(mv, from, int.class);
-                    if (long.class == to) {
-                        mv.i2l();
-                        // strip off bits 32:63
-                        mv.ldc(0xffffffffL);
-                        mv.land();
-                    } else {
-                        // `to` may be byte.class
-                        narrow(mv, int.class, to);
-                    }
-                } else {
-                    // `to` may be byte.class
-                    narrow(mv, from, to);
-                    widen(mv, from, to);
-                }
+                unsigned = true;
                 break;
-
-
-            case FLOAT:
-            case DOUBLE:
-                break;
-
             default:
-                narrow(mv, from, to);
-                widen(mv, from, to);
                 break;
         }
+        switch (sizeofNativeType) {
+            case 1:
+                if (unsigned) {
+                    convertPrimitive(mv, from, int.class);
+                    mv.pushInt(0xff);
+                    mv.iand();
+                } else {
+                    convertPrimitive(mv, from, byte.class);
+                }
+                convertPrimitive(mv, int.class, to);
+                break;
+            case 2:
+                if (unsigned) {
+                    convertPrimitive(mv, from, char.class);
+                } else {
+                    convertPrimitive(mv, from, short.class);
+                }
+                convertPrimitive(mv, int.class, to);
+                break;
+            case 4: // to must be long
+                if (unsigned) {
+                    convertPrimitive(mv, from, long.class);
+                    mv.ldc(0xffffffffL);
+                    mv.land();
+                } else {
+                    convertPrimitive(mv, from, int.class);
+                    mv.i2l();
+                }
+                break;
+            default: // impossible
+                break;
+        }
+    }
+
+    private static int sizeof(Class<?> to) {
+        if (to == byte.class) {
+            return 1;
+        } else if (char.class == to || short.class == to) {
+            return 2;
+        } else if (int.class == to) {
+            return 4;
+        } else if (long.class == to) {
+            return 8;
+        }
+        return 0x100;
     }
 
     static int sizeof(SigType type) {

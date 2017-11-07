@@ -83,12 +83,12 @@ abstract class AbstractFastNumericMethodGenerator extends BaseMethodGenerator {
 
         // Convert the result from long/int to the correct return type
         if (Float.class == javaReturnType || float.class == javaReturnType) {
-            narrow(mv, nativeIntType, int.class);
+            convertPrimitive(mv, nativeIntType, int.class);
             mv.invokestatic(Float.class, "intBitsToFloat", float.class, int.class);
             nativeReturnType = float.class;
 
         } else if (Double.class == javaReturnType || double.class == javaReturnType) {
-            widen(mv, nativeIntType, long.class);
+            convertPrimitive(mv, nativeIntType, long.class);
             mv.invokestatic(Double.class, "longBitsToDouble", double.class, long.class);
             nativeReturnType = double.class;
 
@@ -144,7 +144,7 @@ abstract class AbstractFastNumericMethodGenerator extends BaseMethodGenerator {
             mv.invokevirtual(p(com.kenai.jffi.Invoker.class),
                     getObjectParameterMethodName(parameterTypes.length),
                     getObjectParameterMethodSignature(parameterTypes.length, pointerCount));
-            narrow(mv, long.class, nativeIntType);
+            convertPrimitive(mv, long.class, nativeIntType);
             mv.go_to(convertResult);
         }
     }
@@ -224,7 +224,7 @@ abstract class AbstractFastNumericMethodGenerator extends BaseMethodGenerator {
             mv.invokevirtual(PointerParameterStrategy.class, "address", long.class, Object.class);
         }
 
-        narrow(mv, long.class, nativeIntType);
+        convertPrimitive(mv, long.class, nativeIntType);
     }
 
     static int emitDirectCheck(SkinnyMethodAdapter mv, Class<?> javaParameterClass, Class<?> nativeIntType,
@@ -240,7 +240,7 @@ abstract class AbstractFastNumericMethodGenerator extends BaseMethodGenerator {
         if (Pointer.class.isAssignableFrom(javaParameterClass)) {
             mv.aload(parameter);
             mv.invokevirtual(Pointer.class, "address", long.class);
-            narrow(mv, long.class, nativeIntType);
+            convertPrimitive(mv, long.class, nativeIntType);
             mv.aload(parameter);
             mv.invokevirtual(Pointer.class, "isDirect", boolean.class);
             mv.iftrue(next);
@@ -248,7 +248,7 @@ abstract class AbstractFastNumericMethodGenerator extends BaseMethodGenerator {
         } else if (Buffer.class.isAssignableFrom(javaParameterClass)) {
             mv.aload(parameter);
             mv.invokestatic(AsmRuntime.class, "longValue", long.class, Buffer.class);
-            narrow(mv, long.class, nativeIntType);
+            convertPrimitive(mv, long.class, nativeIntType);
             mv.aload(parameter);
             mv.invokevirtual(Buffer.class, "isDirect", boolean.class);
             mv.iftrue(next);

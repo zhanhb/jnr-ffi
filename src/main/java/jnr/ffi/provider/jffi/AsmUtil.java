@@ -124,7 +124,7 @@ final class AsmUtil {
 
     static void unboxBoolean(final SkinnyMethodAdapter mv, final Class<?> nativeType) {
         mv.invokevirtual("java/lang/Boolean", "booleanValue", "()Z");
-        widen(mv, boolean.class, nativeType);
+        convertPrimitive(mv, boolean.class, nativeType);
     }
 
     static void unboxNumber(final SkinnyMethodAdapter mv, final Class<?> boxedType, final Class<?> unboxedType,
@@ -162,7 +162,7 @@ final class AsmUtil {
                 case SLONGLONG:
                 case ULONGLONG:
                     mv.invokevirtual(p(boxedType), "longValue", "()J");
-                    narrow(mv, long.class, unboxedType);
+                    convertPrimitive(mv, long.class, unboxedType);
                     break;
 
                 case FLOAT:
@@ -212,7 +212,7 @@ final class AsmUtil {
         if (boxedType == unboxedType || boxedType.isPrimitive()) {
 
         } else if (Boolean.class == boxedType) {
-            narrow(mv, unboxedType, boolean.class);
+            convertPrimitive(mv, unboxedType, boolean.class);
             mv.invokestatic(Boolean.class, "valueOf", Boolean.class, boolean.class);
 
         } else if (Pointer.class.isAssignableFrom(boxedType)) {

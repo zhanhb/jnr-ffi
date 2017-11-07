@@ -27,8 +27,7 @@ import java.util.IdentityHashMap;
 import java.util.Map;
 
 import static jnr.ffi.provider.jffi.AsmUtil.*;
-import static jnr.ffi.provider.jffi.NumberUtil.narrow;
-import static jnr.ffi.provider.jffi.NumberUtil.widen;
+import static jnr.ffi.provider.jffi.NumberUtil.convertPrimitive;
 
 /**
  * Emits appropriate asm code to convert the parameter to a native value
@@ -108,7 +107,7 @@ abstract class ToNativeOp {
             }
             if (primitiveClass != float.class) {
                 mv.invokestatic("java/lang/Float", "floatToRawIntBits", "(F)I");
-                widen(mv, int.class, primitiveClass);
+                convertPrimitive(mv, int.class, primitiveClass);
             }
         }
     }
@@ -125,7 +124,7 @@ abstract class ToNativeOp {
             }
             if (primitiveClass != double.class) {
                 mv.invokestatic(Double.class, "doubleToRawLongBits", long.class, double.class);
-                narrow(mv, long.class, primitiveClass);
+                convertPrimitive(mv, long.class, primitiveClass);
             }
         }
     }
@@ -141,7 +140,7 @@ abstract class ToNativeOp {
                 mv.invokestatic(AsmRuntime.class, "longValue", long.class, Address.class);
             } else {
                 mv.invokestatic(AsmRuntime.class, "intValue", int.class, Address.class);
-                narrow(mv, int.class, primitiveClass);
+                convertPrimitive(mv, int.class, primitiveClass);
             }
         }
     }
